@@ -1,21 +1,25 @@
-<!-- FILE: config/Database.php -->
 <?php
 class Database {
-    private $host = 'localhost';
+    private $host = 'localhost:5333';
     private $db_name = 'erp_system';
     private $user = 'root';
     private $password = '';
     private $conn;
 
     public function connect() {
-        $this->conn = new mysqli($this->host, $this->user, $this->password, $this->db_name);
-        
-        if ($this->conn->connect_error) {
-            die('Connection Error: ' . $this->conn->connect_error);
+        try {
+            $this->conn = new mysqli($this->host, $this->user, $this->password, $this->db_name);
+            
+            if ($this->conn->connect_error) {
+                throw new Exception('Connection Error: ' . $this->conn->connect_error);
+            }
+            
+            $this->conn->set_charset("utf8mb4");
+            return $this->conn;
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            throw $e;
         }
-        
-        $this->conn->set_charset("utf8mb4");
-        return $this->conn;
     }
 
     public function getConnection() {
