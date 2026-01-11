@@ -55,8 +55,8 @@
                         <!-- Take attendence -->
                         <div class="attendenceTable" style="display: block;">
                             <div class="header">
-                                <i class='bx bx-receipt'></i>
-                                <h3>Show Attendence </h3>
+                                <i class='bx bx-calendar-check'></i>
+                                <h3>Take Attendance </h3>
                                 <i class='bx bx-filter'></i>
                             
                             </div>
@@ -64,32 +64,38 @@
 
                             <hr><br>
 
-                            <div class="container" style="display: flex;">
+                            <div class="container" style="display: flex; gap: 20px; flex-wrap: wrap;">
 
                                 <div class="row g-3 align-items-center">
                                     <div class="col-auto">
-                                        <label for="inputPassword6" class="col-form-label">&nbsp;Class&nbsp; </label>
+                                        <label for="classTakeAttendence" class="col-form-label">&nbsp;Class&nbsp; </label>
                                     </div>
                                     <div class="col-auto">
-                                        <select class="form-select" aria-label="Default select example" name="class"
+                                        <select class="form-select" aria-label="Select class" name="class"
                                             id="classTakeAttendence">
-                                            <!-- <option selected>12</option>
-                                            <option>11</option>
-                                            <option>10</option>
-                                            <option>9</option>
-                                            <option>8</option>
-                                            <option>7</option>
-                                            <option>6</option>
-                                            <option>5</option>
-                                            <option>4</option>
-                                            <option>3</option>
-                                            <option>2</option>
-                                            <option>1</option>
-                                            <option>pg</option>
-                                            <option>lkg</option>
-                                            <option>ukg</option> -->
                                             <?php include('partials/select_classes.php') ?>
                                         </select>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 align-items-center">
+                                    <div class="col-auto">
+                                        <label for="sectionTakeAttendence" class="col-form-label">Section </label>
+                                    </div>
+                                    <div class="col-auto">
+                                        <select class="form-select" aria-label="Select section" name="section"
+                                            id="sectionTakeAttendence">
+                                            <?php include('partials/selelct_section.php') ?>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 align-items-center">
+                                    <div class="col-auto">
+                                        <label for="dateTakeAttendence" class="col-form-label">Date </label>
+                                    </div>
+                                    <div class="col-auto">
+                                        <input type="date" class="form-control" id="dateTakeAttendence" value="<?php echo date('Y-m-d'); ?>">
                                     </div>
                                 </div>
 
@@ -116,60 +122,59 @@
                             <br>
 
                             <div class="container">
-                                <a class="find" id="findForAttendence">
-                                <i class='bx bx-search-alt'></i>
-                                    <span>Find</span>
-                                </a>
-
+                                <button class="btn btn-primary" id="loadStudentsBtn">
+                                    <i class='bx bx-search-alt'></i>
+                                    <span>Load Students</span>
+                                </button>
+                                <button class="btn btn-success" id="markAllPresentBtn" style="margin-left: 10px;">
+                                    <i class='bx bx-check-double'></i>
+                                    <span>Mark All Present</span>
+                                </button>
+                                <button class="btn btn-danger" id="markAllAbsentBtn" style="margin-left: 10px;">
+                                    <i class='bx bx-x'></i>
+                                    <span>Mark All Absent</span>
+                                </button>
                             </div>
                             <br>
 
                             <hr><br>
                             <div class="header">
-                                <i class='bx bx-receipt'></i>
-                                <h3>Student List </h3>
-
-
-
-
-                                <div class="dropdown dropdown-center">
-                                    <a class="notif" data-bs-toggle="dropdown" aria-expanded="false" id="dropDownListForSubmit">
-                                        <i class='bx bx-filter'></i>
-                                    </a>
-
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item reset-attendence">Reset Attendence</a></li>
-                                        <li><a class="dropdown-item submit-attendence" id="submit_attendence_dropdown" >Submit Attendence</a></li>
-                                    </ul>
-                                </div>
+                                <i class='bx bx-group'></i>
+                                <h3>Student List <span id="studentCountBadge" class="badge bg-primary"></span></h3>
+                                <button class="btn btn-sm btn-outline-success" id="submitAttendanceBtn" style="display: none;">
+                                    <i class='bx bx-save'></i> Save Attendance
+                                </button>
                             </div>
 
 
 
                             <hr>
                             <!--table-->
-                            <table>
+                            <div id="attendanceTableContainer">
+                            <table id="attendanceTable">
                                 <thead>
                                     <tr>
                                         <th>#</th>
-                                        <th>Roll No.</th>
-                                        <th>&nbsp;&nbsp;Name</th>
-                                        <th>Total Days</th>
-                                        <th>Present</th>
-                                        <th>Percentage</th>
+                                        <th>Student ID</th>
+                                        <th>Name</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="takeAttendenceTable">
-
-                                   
-
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            <i class='bx bx-info-circle'></i> Select class, section and date, then click "Load Students"
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
+                            </div>
                             <!--END table-->
 
-                            <div id="dataNotAvailable">
+                            <div id="dataNotAvailable" style="display: none;">
 
-                                <div class="_flex-container box-hide">
+                                <div class="_flex-container">
 
                                     <div class="no-data-box">
                                         <div class="no-dataicon" id="no-data-icon">
@@ -183,7 +188,7 @@
                         </div>
                         <hr>
 
-                        <div id="buttons">
+                        <div id="buttons" style="display: none;">
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end" id="bottom-btns">
                             <button type="button" class="btn btn-outline-warning" id="reset-attendence-btn">&nbsp;&nbsp;Reset&nbsp;&nbsp;</button>
                             <button type="button" class="btn btn-outline-success" id="submit-attendence-btn">Submit</button>
@@ -360,6 +365,7 @@
 
 </div>
 
+<script src="../assets/js/attendance_modern.js"></script>
 <script src="../assets/js/attendenceShowToAdmin.js"></script>
 <!-- <script src="../assets/js/attendence.js"></script> -->
 

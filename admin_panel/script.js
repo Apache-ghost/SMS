@@ -71,7 +71,8 @@ menuBarBtns.forEach(function (menuBar) {
 
 
 
-let checkFile = parseInt(document.getElementById("checkFileName").value);
+let checkFileElement = document.querySelector("#checkFileName");
+let checkFile = checkFileElement ? parseInt(checkFileElement.value) : 0;
 
 let sideMenu = document.querySelector(".side-menu");
 var listItems = sideMenu.querySelectorAll('li');

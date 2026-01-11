@@ -1,5 +1,6 @@
 <?php
 // REQ-ACD-005: Assignment Management - Create, publish, and manage assignments
+session_start();
 include("config.php");
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -7,47 +8,54 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Create new assignment
     if ($action == "create_assignment") {
-        $assignmentCode = mysqli_real_escape_string($conn, $_POST["assignment_code"]);
-        $title = mysqli_real_escape_string($conn, $_POST["title"]);
+        $assignmentCode = mysqli_real_escape_string($conn, $_POST["assignment_code"] ?? '');
+        $title = mysqli_real_escape_string($conn, $_POST["title"] ?? '');
         $description = mysqli_real_escape_string($conn, $_POST["description"] ?? '');
         $instructions = mysqli_real_escape_string($conn, $_POST["instructions"] ?? '');
-        $courseCode = mysqli_real_escape_string($conn, $_POST["course_code"]);
-        $class = mysqli_real_escape_string($conn, $_POST["class"]);
+        $courseCode = !empty($_POST["course_code"]) ? mysqli_real_escape_string($conn, $_POST["course_code"]) : null;
+        $class = mysqli_real_escape_string($conn, $_POST["class"] ?? '');
         $section = mysqli_real_escape_string($conn, $_POST["section"] ?? '');
-        $teacherId = mysqli_real_escape_string($conn, $_POST["teacher_id"]);
+        $teacherId = mysqli_real_escape_string($conn, $_POST["teacher_id"] ?? '');
         $assignmentType = mysqli_real_escape_string($conn, $_POST["assignment_type"] ?? 'homework');
-        $maxMarks = mysqli_real_escape_string($conn, $_POST["max_marks"] ?? 100);
-        $weightage = mysqli_real_escape_string($conn, $_POST["weightage"] ?? 0);
+        $maxMarks = floatval($_POST["max_marks"] ?? 100);
+        $weightage = floatval($_POST["weightage"] ?? 0);
         $difficultyLevel = mysqli_real_escape_string($conn, $_POST["difficulty_level"] ?? 'medium');
-        $estimatedDuration = mysqli_real_escape_string($conn, $_POST["estimated_duration"] ?? null);
-        $assignedDate = mysqli_real_escape_string($conn, $_POST["assigned_date"]);
-        $dueDate = mysqli_real_escape_string($conn, $_POST["due_date"]);
-        $lateSubmissionAllowed = $_POST["late_submission_allowed"] ?? 1;
-        $latePenaltyPerDay = mysqli_real_escape_string($conn, $_POST["late_penalty_per_day"] ?? 5);
-        $maxLateDays = mysqli_real_escape_string($conn, $_POST["max_late_days"] ?? 3);
-        $allowResubmission = $_POST["allow_resubmission"] ?? 0;
-        $maxResubmissions = mysqli_real_escape_string($conn, $_POST["max_resubmissions"] ?? 1);
+        $estimatedDuration = !empty($_POST["estimated_duration"]) ? intval($_POST["estimated_duration"]) : null;
+        $assignedDate = mysqli_real_escape_string($conn, $_POST["assigned_date"] ?? date('Y-m-d'));
+        $dueDate = mysqli_real_escape_string($conn, $_POST["due_date"] ?? '');
+        $lateSubmissionAllowed = intval($_POST["late_submission_allowed"] ?? 1);
+        $latePenaltyPerDay = floatval($_POST["late_penalty_per_day"] ?? 5);
+        $maxLateDays = intval($_POST["max_late_days"] ?? 3);
+        $allowResubmission = intval($_POST["allow_resubmission"] ?? 0);
+        $maxResubmissions = intval($_POST["max_resubmissions"] ?? 1);
         $submissionFormat = mysqli_real_escape_string($conn, $_POST["submission_format"] ?? '');
-        $maxFileSize = mysqli_real_escape_string($conn, $_POST["max_file_size"] ?? 10485760);
-        $academicYear = mysqli_real_escape_string($conn, $_POST["academic_year"]);
-        $semester = mysqli_real_escape_string($conn, $_POST["semester"]);
+        $maxFileSize = intval($_POST["max_file_size"] ?? 10485760);
+        $academicYear = mysqli_real_escape_string($conn, $_POST["academic_year"] ?? date('Y'));
+        $semester = intval($_POST["semester"] ?? 1);
         $status = mysqli_real_escape_string($conn, $_POST["status"] ?? 'draft');
-        $createdBy = mysqli_real_escape_string($conn, $_POST["created_by"]);
+        $createdBy = mysqli_real_escape_string($conn, $_POST["created_by"] ?? '');
         
         mysqli_begin_transaction($conn);
         
         try {
             $sql = "INSERT INTO assignments 
-                    (assignment_code, title, description, instructions, course_code, class, section,
+                    (assignment_code, title, description, instructions, class, section,
                      teacher_id, assignment_type, max_marks, weightage, difficulty_level, 
                      estimated_duration, assigned_date, due_date, late_submission_allowed, 
                      late_penalty_per_day, max_late_days, allow_resubmission, max_resubmissions,
                      submission_format, max_file_size, academic_year, semester, status, created_by) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param($stmt, "sssssissddsisddiiiisiss", 
-                $assignmentCode, $title, $description, $instructions, $courseCode, $class, 
+            // Types: s=string, i=integer, d=double/decimal
+            // 25 parameters (removed course_code): 
+            // assignmentCode(s), title(s), description(s), instructions(s), class(s), section(s),
+            // teacherId(s), assignmentType(s), maxMarks(d), weightage(d), difficultyLevel(s),
+            // estimatedDuration(i), assignedDate(s), dueDate(s), lateSubmissionAllowed(i),
+            // latePenaltyPerDay(d), maxLateDays(i), allowResubmission(i), maxResubmissions(i),
+            // submissionFormat(s), maxFileSize(i), academicYear(s), semester(i), status(s), createdBy(s)
+            mysqli_stmt_bind_param($stmt, "sssssssddsissidiiisississ", 
+                $assignmentCode, $title, $description, $instructions, $class, 
                 $section, $teacherId, $assignmentType, $maxMarks, $weightage, $difficultyLevel,
                 $estimatedDuration, $assignedDate, $dueDate, $lateSubmissionAllowed, 
                 $latePenaltyPerDay, $maxLateDays, $allowResubmission, $maxResubmissions,
@@ -58,6 +66,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
             
             $assignmentId = mysqli_insert_id($conn);
+            
+            // Handle file attachments
+            if (isset($_FILES['attachments']) && !empty($_FILES['attachments']['name'][0])) {
+                $uploadDir = "../assignmentUploads/";
+                if (!file_exists($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                
+                foreach ($_FILES['attachments']['name'] as $key => $fileName) {
+                    if ($_FILES['attachments']['error'][$key] == 0) {
+                        $fileSize = $_FILES['attachments']['size'][$key];
+                        $fileType = $_FILES['attachments']['type'][$key];
+                        $tmpName = $_FILES['attachments']['tmp_name'][$key];
+                        
+                        $newFileName = time() . '_' . $key . '_' . basename($fileName);
+                        $uploadPath = $uploadDir . $newFileName;
+                        
+                        if (move_uploaded_file($tmpName, $uploadPath)) {
+                            // Insert attachment record
+                            $attSql = "INSERT INTO assignment_attachments 
+                                      (assignment_id, file_name, file_path, file_type, file_size, attachment_type, uploaded_by) 
+                                      VALUES (?, ?, ?, ?, ?, 'reference', ?)";
+                            $attStmt = mysqli_prepare($conn, $attSql);
+                            mysqli_stmt_bind_param($attStmt, "isssds", 
+                                $assignmentId, $fileName, $newFileName, $fileType, $fileSize, $createdBy);
+                            mysqli_stmt_execute($attStmt);
+                        }
+                    }
+                }
+            }
             
             // Initialize statistics
             $statSql = "INSERT INTO assignment_statistics (assignment_id) VALUES (?)";
@@ -514,6 +552,230 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             mysqli_rollback($conn);
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
+    }
+    
+    // Get all assignments
+    else if ($action == "get_all_assignments") {
+        $statusFilter = $_POST['status_filter'] ?? '';
+        
+        $sql = "SELECT a.*, 
+                (SELECT COUNT(*) FROM assignment_submissions WHERE assignment_id = a.assignment_id) as submission_count
+                FROM assignments a WHERE 1=1";
+        
+        if (!empty($statusFilter)) {
+            $sql .= " AND a.status = '" . mysqli_real_escape_string($conn, $statusFilter) . "'";
+        }
+        
+        $sql .= " ORDER BY a.created_at DESC";
+        
+        $result = mysqli_query($conn, $sql);
+        
+        $assignments = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $assignments[] = $row;
+        }
+        
+        echo json_encode(['status' => 'success', 'assignments' => $assignments]);
+        exit;
+    }
+    
+    // Get assignment statistics
+    else if ($action == "get_statistics") {
+        $totalSql = "SELECT COUNT(*) as count FROM assignments";
+        $totalResult = mysqli_query($conn, $totalSql);
+        $totalRow = mysqli_fetch_assoc($totalResult);
+        
+        $activeSql = "SELECT COUNT(*) as count FROM assignments WHERE status = 'published' AND due_date >= NOW()";
+        $activeResult = mysqli_query($conn, $activeSql);
+        $activeRow = mysqli_fetch_assoc($activeResult);
+        
+        $submissionsSql = "SELECT COUNT(*) as count FROM assignment_submissions";
+        $submissionsResult = mysqli_query($conn, $submissionsSql);
+        $submissionsRow = mysqli_fetch_assoc($submissionsResult);
+        
+        $pendingSql = "SELECT COUNT(*) as count FROM assignment_submissions WHERE status = 'submitted'";
+        $pendingResult = mysqli_query($conn, $pendingSql);
+        $pendingRow = mysqli_fetch_assoc($pendingResult);
+        
+        echo json_encode([
+            'status' => 'success',
+            'total_assignments' => $totalRow['count'],
+            'active_assignments' => $activeRow['count'],
+            'total_submissions' => $submissionsRow['count'],
+            'pending_grading' => $pendingRow['count']
+        ]);
+        exit;
+    }
+    
+    // Get assignment details
+    else if ($action == "get_assignment_details") {
+        $assignmentId = intval($_POST['assignment_id'] ?? 0);
+        
+        if ($assignmentId == 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid assignment ID']);
+            exit;
+        }
+        
+        $sql = "SELECT * FROM assignments WHERE assignment_id = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "i", $assignmentId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if ($assignment = mysqli_fetch_assoc($result)) {
+            // Get attachments
+            $attSql = "SELECT * FROM assignment_attachments WHERE assignment_id = ?";
+            $attStmt = mysqli_prepare($conn, $attSql);
+            mysqli_stmt_bind_param($attStmt, "i", $assignmentId);
+            mysqli_stmt_execute($attStmt);
+            $attResult = mysqli_stmt_get_result($attStmt);
+            
+            $attachments = [];
+            while ($attRow = mysqli_fetch_assoc($attResult)) {
+                $attachments[] = $attRow;
+            }
+            
+            $assignment['attachments'] = $attachments;
+            echo json_encode(['status' => 'success', 'assignment' => $assignment]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Assignment not found']);
+        }
+        exit;
+    }
+    
+    // Get student assignments
+    else if ($action == "get_student_assignments") {
+        $studentId = $_SESSION['uid'] ?? '';
+        
+        if (empty($studentId)) {
+            echo json_encode(['status' => 'error', 'message' => 'Not logged in']);
+            exit;
+        }
+        
+        // Get student's class and section
+        $sql = "SELECT class, section FROM students WHERE id = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "s", $studentId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if ($student = mysqli_fetch_assoc($result)) {
+            $class = $student['class'];
+            $section = $student['section'];
+            
+            // Get assignments for this class/section
+            $sql = "SELECT a.*, 
+                    (SELECT submission_id FROM assignment_submissions 
+                     WHERE assignment_id = a.assignment_id AND student_id = ? 
+                     ORDER BY submitted_at DESC LIMIT 1) as submission_id,
+                    (SELECT status FROM assignment_submissions 
+                     WHERE assignment_id = a.assignment_id AND student_id = ? 
+                     ORDER BY submitted_at DESC LIMIT 1) as submission_status,
+                    (SELECT marks_obtained FROM assignment_submissions 
+                     WHERE assignment_id = a.assignment_id AND student_id = ? 
+                     ORDER BY submitted_at DESC LIMIT 1) as marks_obtained
+                    FROM assignments a 
+                    WHERE a.class = ? AND (a.section = ? OR a.section = 'ALL') 
+                    AND a.status = 'published'
+                    ORDER BY a.due_date ASC";
+            
+            $stmt = mysqli_prepare($conn, $sql);
+            mysqli_stmt_bind_param($stmt, "sssss", $studentId, $studentId, $studentId, $class, $section);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            
+            $assignments = [];
+            while ($row = mysqli_fetch_assoc($result)) {
+                $assignments[] = $row;
+            }
+            
+            echo json_encode(['status' => 'success', 'assignments' => $assignments]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Student not found']);
+        }
+        exit;
+    }
+    
+    // Update assignment status
+    else if ($action == "update_assignment_status") {
+        $assignmentId = intval($_POST['assignment_id'] ?? 0);
+        $status = mysqli_real_escape_string($conn, $_POST['status'] ?? '');
+        
+        if ($assignmentId == 0 || empty($status)) {
+            echo json_encode(['status' => 'error', 'message' => 'Missing required data']);
+            exit;
+        }
+        
+        $sql = "UPDATE assignments SET status = ? WHERE assignment_id = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "si", $status, $assignmentId);
+        
+        if (mysqli_stmt_execute($stmt)) {
+            echo json_encode(['status' => 'success', 'message' => 'Status updated successfully']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Failed to update status']);
+        }
+        exit;
+    }
+    
+    // Submit assignment (student)
+    else if ($action == "submit_assignment") {
+        $studentId = $_SESSION['uid'] ?? '';
+        $assignmentId = intval($_POST['assignment_id'] ?? 0);
+        $submissionText = mysqli_real_escape_string($conn, $_POST['submission_text'] ?? '');
+        
+        if (empty($studentId) || $assignmentId == 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Missing required data']);
+            exit;
+        }
+        
+        // Check if assignment exists
+        $sql = "SELECT * FROM assignments WHERE assignment_id = ? AND status = 'published'";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "i", $assignmentId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if (!$assignment = mysqli_fetch_assoc($result)) {
+            echo json_encode(['status' => 'error', 'message' => 'Assignment not found']);
+            exit;
+        }
+        
+        // Handle file upload
+        $attachment = null;
+        if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] == 0) {
+            $uploadDir = "../assignmentUploads/";
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+            
+            $fileName = time() . '_' . basename($_FILES['attachment']['name']);
+            $uploadPath = $uploadDir . $fileName;
+            
+            if (move_uploaded_file($_FILES['attachment']['tmp_name'], $uploadPath)) {
+                $attachment = $fileName;
+            }
+        }
+        
+        // Insert submission
+        $insertSql = "INSERT INTO assignment_submissions 
+                      (assignment_id, student_id, submission_text, attachment, status) 
+                      VALUES (?, ?, ?, ?, 'submitted')";
+        $insertStmt = mysqli_prepare($conn, $insertSql);
+        mysqli_stmt_bind_param($insertStmt, "isss", $assignmentId, $studentId, $submissionText, $attachment);
+        
+        if (mysqli_stmt_execute($insertStmt)) {
+            // Update total submissions count
+            $updateSql = "UPDATE assignments SET total_submissions = total_submissions + 1 WHERE assignment_id = ?";
+            $updateStmt = mysqli_prepare($conn, $updateSql);
+            mysqli_stmt_bind_param($updateStmt, "i", $assignmentId);
+            mysqli_stmt_execute($updateStmt);
+            
+            echo json_encode(['status' => 'success', 'message' => 'Assignment submitted successfully!']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Failed to submit assignment']);
+        }
+        exit;
     }
 }
 

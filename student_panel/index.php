@@ -266,7 +266,28 @@
         </aside>
 
         <main>
-            <h1>Attendance</h1>
+            <h1>Dashboard</h1>
+            
+            <!-- Daily Attendance Card -->
+            <div class="attendance-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px; margin-bottom: 20px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 24px;">📅 Daily Attendance</h2>
+                        <p style="margin: 10px 0 0 0; opacity: 0.9;" id="attendanceDate"><?php echo date('l, F j, Y'); ?></p>
+                    </div>
+                    <div id="attendanceButtonContainer">
+                        <button id="markPresentBtn" class="btn btn-light btn-lg" style="padding: 15px 30px; font-size: 18px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                            <i class='bx bx-check-circle'></i> Mark Present
+                        </button>
+                    </div>
+                </div>
+                <div id="attendanceStatus" style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.2); border-radius: 10px; display: none;">
+                    <p style="margin: 0; font-size: 16px;"></p>
+                </div>
+            </div>
+
+            <!-- Attendance Statistics -->
+            <h2 style="margin-top: 30px;">Attendance Statistics</h2>
             <div class="subjects">
                 <div class="eg">
                     <div id="piechart"></div>
@@ -313,6 +334,14 @@
                 ?>
 
 
+            </div>
+            
+            <!-- Assignments Section -->
+            <div class="leaves" style="margin-top: 20px;">
+                <h2>📝 My Assignments</h2>
+                <div id="assignmentsList" style="padding: 10px;">
+                    <p class="text-center">Loading assignments...</p>
+                </div>
             </div>
             
             <!-- Curriculum Section -->
@@ -549,6 +578,209 @@
         }
     </script>
 
+    <!-- Student Assignments Script -->
+    <script>
+        // Load student assignments
+        function loadStudentAssignments() {
+            const formData = new FormData();
+            formData.append('action', 'get_student_assignments');
+
+            fetch('../assets/manageAssignments.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('assignmentsList');
+                
+                if (data.status === 'success' && data.assignments && data.assignments.length > 0) {
+                    let html = '';
+                    
+                    data.assignments.forEach(assignment => {
+                        const dueDate = new Date(assignment.due_date);
+                        const now = new Date();
+                        const isOverdue = dueDate < now && !assignment.submission_id;
+                        const hasSubmitted = assignment.submission_id ? true : false;
+                        
+                        let statusBadge = '';
+                        let statusClass = '';
+                        
+                        if (hasSubmitted) {
+                            if (assignment.marks_obtained !== null) {
+                                statusBadge = `<span class="badge bg-success">✓ Graded: ${assignment.marks_obtained}/${assignment.max_marks}</span>`;
+                                statusClass = 'border-success';
+                            } else {
+                                statusBadge = '<span class="badge bg-info">✓ Submitted</span>';
+                                statusClass = 'border-info';
+                            }
+                        } else if (isOverdue) {
+                            statusBadge = '<span class="badge bg-danger">⚠ Overdue</span>';
+                            statusClass = 'border-danger';
+                        } else {
+                            statusBadge = '<span class="badge bg-warning">⏰ Pending</span>';
+                            statusClass = 'border-warning';
+                        }
+                        
+                        html += `
+                            <div class="card mb-3 ${statusClass}" style="border-left: 4px solid;">
+                                <div class="card-body">
+                                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                                        <div>
+                                            <h5 class="card-title mb-1">${assignment.title}</h5>
+                                            <p class="text-muted mb-2">
+                                                <small>${assignment.assignment_type || 'Assignment'} | ${assignment.course_code || 'General'}</small>
+                                            </p>
+                                            <p class="card-text mb-2">${assignment.description || ''}</p>
+                                            <p class="mb-1">
+                                                <i class='bx bx-calendar'></i> <strong>Due:</strong> 
+                                                <span class="${isOverdue ? 'text-danger' : ''}">${formatDateTime(assignment.due_date)}</span>
+                                            </p>
+                                            <p class="mb-0">
+                                                <i class='bx bx-star'></i> <strong>Max Marks:</strong> ${assignment.max_marks || 100}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            ${statusBadge}
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <a href="assignment_details.php?id=${assignment.assignment_id}" class="btn btn-sm btn-primary">
+                                            <i class='bx bx-show'></i> View Details
+                                        </a>
+                                        ${!hasSubmitted && !isOverdue ? `
+                                        <a href="submit_assignment.php?id=${assignment.assignment_id}" class="btn btn-sm btn-success">
+                                            <i class='bx bx-upload'></i> Submit Now
+                                        </a>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<p class="text-center text-muted" style="padding: 20px;">📚 No assignments available at the moment.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('assignmentsList').innerHTML = '<p class="text-center text-danger">Error loading assignments</p>';
+            });
+        }
+
+        function formatDateTime(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', { 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Load assignments when page loads
+        if (document.getElementById('assignmentsList')) {
+            loadStudentAssignments();
+        }
+    </script>
+
+    <!-- Student Self-Attendance Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            checkTodayAttendance();
+            
+            const markPresentBtn = document.getElementById('markPresentBtn');
+            if (markPresentBtn) {
+                markPresentBtn.addEventListener('click', markPresent);
+            }
+        });
+
+        function checkTodayAttendance() {
+            const formData = new FormData();
+            formData.append('action', 'check_student_attendance');
+
+            fetch('../assets/manageAttendance.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.marked) {
+                    showAlreadyMarked(data.attendance_status, data.time);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function markPresent() {
+            const btn = document.getElementById('markPresentBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Marking...';
+
+            const formData = new FormData();
+            formData.append('action', 'student_mark_present');
+
+            fetch('../assets/manageAttendance.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showSuccess(data.message);
+                    // Reload page to update attendance chart
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showError(data.message);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bx bx-check-circle"></i> Mark Present';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to mark attendance');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bx bx-check-circle"></i> Mark Present';
+            });
+        }
+
+        function showAlreadyMarked(status, time) {
+            const container = document.getElementById('attendanceButtonContainer');
+            const statusDiv = document.getElementById('attendanceStatus');
+            
+            container.innerHTML = `
+                <div style="text-align: center; padding: 15px;">
+                    <i class='bx bx-check-circle' style="font-size: 48px; color: #4CAF50;"></i>
+                    <p style="margin: 10px 0 0 0; font-size: 18px; font-weight: bold;">Attendance Already Marked</p>
+                </div>
+            `;
+            
+            statusDiv.style.display = 'block';
+            statusDiv.querySelector('p').innerHTML = `
+                <i class='bx bx-check'></i> You marked yourself <strong>${status}</strong> today at ${time}
+            `;
+        }
+
+        function showSuccess(message) {
+            const statusDiv = document.getElementById('attendanceStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = 'rgba(76, 175, 80, 0.3)';
+            statusDiv.querySelector('p').innerHTML = `
+                <i class='bx bx-check-circle'></i> ${message}
+            `;
+        }
+
+        function showError(message) {
+            const statusDiv = document.getElementById('attendanceStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = 'rgba(244, 67, 54, 0.3)';
+            statusDiv.querySelector('p').innerHTML = `
+                <i class='bx bx-error-circle'></i> ${message}
+            `;
+        }
+    </script>
 
     <script type="text/javascript" src="app.js"></script>
     <!-- <script type="text/javascript" src="timeTable.js"></script> -->
