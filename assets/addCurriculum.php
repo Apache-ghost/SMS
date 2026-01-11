@@ -1,6 +1,8 @@
 <?php
+ob_start(); // Start output buffering
 session_start();
 include("config.php");
+ob_clean(); // Clear any output before headers
 header('Content-Type: application/json');
 
 $response = array();
@@ -42,9 +44,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $subjectCode = mysqli_real_escape_string($conn, $subjectCodes[$i]);
             $hours = intval($hoursPerWeek[$i]);
             $classNum = intval($gradeLevel);
-            $theoryHours = $hours;
-            $practicalHours = 0;
+            $theoryHours = intval($subjectNames[$i]); // Using subject_name field for theory hours
+            $practicalHours = $hours; // Using hours_per_week for practical hours
             
+            // First, ensure the course exists in courses table
+            $checkCourse = "SELECT course_code FROM courses WHERE course_code = ?";
+            $checkStmt = mysqli_prepare($conn, $checkCourse);
+            mysqli_stmt_bind_param($checkStmt, "s", $subjectCode);
+            mysqli_stmt_execute($checkStmt);
+            $checkResult = mysqli_stmt_get_result($checkStmt);
+            
+            if (mysqli_num_rows($checkResult) == 0) {
+                // Course doesn't exist, create it from subjects table
+                $getSubject = "SELECT subject_name, class FROM subjects WHERE subject_id = ?";
+                $getStmt = mysqli_prepare($conn, $getSubject);
+                mysqli_stmt_bind_param($getStmt, "s", $subjectCode);
+                mysqli_stmt_execute($getStmt);
+                $subjectResult = mysqli_stmt_get_result($getStmt);
+                
+                if ($subjectRow = mysqli_fetch_assoc($subjectResult)) {
+                    $insertCourse = "INSERT INTO courses (course_code, course_name, course_type, credit_hours, is_active) VALUES (?, ?, 'core', ?, 1)";
+                    $courseStmt = mysqli_prepare($conn, $insertCourse);
+                    $creditHours = ceil(($theoryHours + $practicalHours) / 2);
+                    mysqli_stmt_bind_param($courseStmt, "ssi", $subjectCode, $subjectRow['subject_name'], $creditHours);
+                    mysqli_stmt_execute($courseStmt);
+                    mysqli_stmt_close($courseStmt);
+                }
+                mysqli_stmt_close($getStmt);
+            }
+            mysqli_stmt_close($checkStmt);
+            
+            // Now insert into curriculum_subjects
             mysqli_stmt_bind_param($subjectStmt, "isiii", $curriculumId, $subjectCode, $classNum, $theoryHours, $practicalHours);
             
             if (!mysqli_stmt_execute($subjectStmt)) {
@@ -55,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // Commit transaction
         mysqli_commit($conn);
         
+        $totalSubjects = count($subjectNames);
         $response['status'] = 'success';
         $response['message'] = 'Curriculum created successfully with ' . $totalSubjects . ' subjects!';
         $response['curriculum_id'] = $curriculumId;
@@ -69,5 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $response['message'] = 'Invalid request';
 }
 
+ob_clean(); // Clear any output before JSON
 echo json_encode($response);
+ob_end_flush();
 ?>

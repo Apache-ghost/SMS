@@ -368,17 +368,29 @@ document.getElementById('saveCurriculumBtn').addEventListener('click', function(
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            alert(data.message);
-            bootstrap.Modal.getInstance(document.getElementById('addCurriculumModal')).hide();
-            form.reset();
-            subjectCount = 1;
-            loadCurriculum();
-        } else {
-            alert('Error: ' + data.message);
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.text(); // Get as text first
+    })
+    .then(text => {
+        console.log('Response text:', text);
+        try {
+            const data = JSON.parse(text);
+            if (data.status === 'success') {
+                alert(data.message);
+                bootstrap.Modal.getInstance(document.getElementById('addCurriculumModal')).hide();
+                form.reset();
+                subjectCount = 1;
+                loadCurriculum();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (e) {
+            console.error('JSON parse error:', e);
+            console.error('Response was:', text);
+            alert('Server error: ' + text.substring(0, 200));
         }
+    })
     })
     .catch(error => {
         console.error('Error:', error);

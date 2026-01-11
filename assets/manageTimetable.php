@@ -265,5 +265,186 @@ function checkTimetableConflicts($conn, $timetableId, $teacherId, $venue, $dayOf
     return $conflicts;
 }
 
+// New simplified actions for timetable management
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action'])) {
+    $action = $_POST['action'];
+    
+    // Get subjects by class
+    if ($action == "get_subjects_by_class") {
+        $class = mysqli_real_escape_string($conn, $_POST["class"]);
+        $sql = "SELECT subject_id, subject_name, class FROM subjects WHERE class = ? ORDER BY subject_name";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "s", $class);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        $subjects = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $subjects[] = $row;
+        }
+        
+        echo json_encode(['status' => 'success', 'data' => $subjects]);
+        exit;
+    }
+    
+    // Get timetables
+    else if ($action == "get_timetables") {
+        $sql = "SELECT * FROM timetable_master WHERE 1=1";
+        
+        if (!empty($_POST['class'])) {
+            $class = mysqli_real_escape_string($conn, $_POST['class']);
+            $sql .= " AND class = '$class'";
+        }
+        if (!empty($_POST['section'])) {
+            $section = mysqli_real_escape_string($conn, $_POST['section']);
+            $sql .= " AND section = '$section'";
+        }
+        if (!empty($_POST['academic_year'])) {
+            $year = mysqli_real_escape_string($conn, $_POST['academic_year']);
+            $sql .= " AND academic_year = '$year'";
+        }
+        if (!empty($_POST['semester'])) {
+            $semester = mysqli_real_escape_string($conn, $_POST['semester']);
+            $sql .= " AND semester = $semester";
+        }
+        
+        $sql .= " ORDER BY created_at DESC";
+        
+        $result = mysqli_query($conn, $sql);
+        $timetables = [];
+        
+        while ($row = mysqli_fetch_assoc($result)) {
+            $timetables[] = $row;
+        }
+        
+        echo json_encode(['status' => 'success', 'data' => $timetables]);
+        exit;
+    }
+    
+    // Create full timetable
+    else if ($action == "create_full_timetable") {
+        $class = mysqli_real_escape_string($conn, $_POST['class']);
+        $section = mysqli_real_escape_string($conn, $_POST['section']);
+        $academicYear = mysqli_real_escape_string($conn, $_POST['academic_year']);
+        $semester = mysqli_real_escape_string($conn, $_POST['semester']);
+        $effectiveFrom = mysqli_real_escape_string($conn, $_POST['effective_from']);
+        $effectiveTo = mysqli_real_escape_string($conn, $_POST['effective_to'] ?? NULL);
+        $createdBy = mysqli_real_escape_string($conn, $_POST['created_by']);
+        
+        mysqli_begin_transaction($conn);
+        
+        try {
+            // Insert timetable master
+            $sql = "INSERT INTO timetable_master (academic_year, semester, class, section, effective_from, effective_to, status, created_by) 
+                    VALUES (?, ?, ?, ?, ?, ?, 'draft', ?)";
+            $stmt = mysqli_prepare($conn, $sql);
+            mysqli_stmt_bind_param($stmt, "sisssss", $academicYear, $semester, $class, $section, $effectiveFrom, $effectiveTo, $createdBy);
+            mysqli_stmt_execute($stmt);
+            
+            $timetableId = mysqli_insert_id($conn);
+            
+            // Insert periods
+            if (isset($_POST['periods'])) {
+                foreach ($_POST['periods'] as $day => $periods) {
+                    $periodNum = 1;
+                    foreach ($periods as $period) {
+                        $startTime = mysqli_real_escape_string($conn, $period['start_time']);
+                        $endTime = mysqli_real_escape_string($conn, $period['end_time']);
+                        $subjectId = mysqli_real_escape_string($conn, $period['subject']);
+                        
+                        $sql = "INSERT INTO timetable_periods (timetable_id, day_of_week, period_number, start_time, end_time, curriculum_subject_id, is_break) 
+                                VALUES (?, ?, ?, ?, ?, (SELECT s_no FROM subjects WHERE subject_id = ?), 0)";
+                        $stmt = mysqli_prepare($conn, $sql);
+                        mysqli_stmt_bind_param($stmt, "isisss", $timetableId, $day, $periodNum, $startTime, $endTime, $subjectId);
+                        mysqli_stmt_execute($stmt);
+                        
+                        $periodNum++;
+                    }
+                }
+            }
+            
+            mysqli_commit($conn);
+            echo json_encode(['status' => 'success', 'message' => 'Timetable created successfully!', 'timetable_id' => $timetableId]);
+            
+        } catch (Exception $e) {
+            mysqli_rollback($conn);
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+    
+    // Activate timetable
+    else if ($action == "activate_timetable") {
+        $timetableId = mysqli_real_escape_string($conn, $_POST['timetable_id']);
+        
+        // Get the class and section of this timetable
+        $sql = "SELECT class, section FROM timetable_master WHERE timetable_id = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "i", $timetableId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $row = mysqli_fetch_assoc($result);
+        
+        // Deactivate all other timetables for the same class/section
+        $sql = "UPDATE timetable_master SET status = 'archived' WHERE class = ? AND section = ? AND status = 'active'";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "is", $row['class'], $row['section']);
+        mysqli_stmt_execute($stmt);
+        
+        // Activate this timetable
+        $sql = "UPDATE timetable_master SET status = 'active' WHERE timetable_id = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "i", $timetableId);
+        
+        if (mysqli_stmt_execute($stmt)) {
+            echo json_encode(['status' => 'success', 'message' => 'Timetable activated!']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Error activating timetable']);
+        }
+        exit;
+    }
+    
+    // Get student timetable
+    else if ($action == "get_student_timetable") {
+        $class = mysqli_real_escape_string($conn, $_POST['class']);
+        $section = mysqli_real_escape_string($conn, $_POST['section']);
+        
+        // Get active timetable - prioritize general timetables (is_general=1) that all students can see
+        $sql = "SELECT * FROM timetable_master 
+                WHERE (is_general = 1 OR (class = ? AND section = ?)) 
+                AND status = 'active' 
+                ORDER BY is_general DESC 
+                LIMIT 1";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "is", $class, $section);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if ($timetable = mysqli_fetch_assoc($result)) {
+            // Get periods - use subject_name column directly
+            $sql = "SELECT tp.*
+                    FROM timetable_periods tp
+                    WHERE tp.timetable_id = ?
+                    ORDER BY 
+                        FIELD(tp.day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'),
+                        tp.start_time";
+            $stmt = mysqli_prepare($conn, $sql);
+            mysqli_stmt_bind_param($stmt, "i", $timetable['timetable_id']);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            
+            $periods = [];
+            while ($row = mysqli_fetch_assoc($result)) {
+                $periods[] = $row;
+            }
+            
+            echo json_encode(['status' => 'success', 'timetable' => $timetable, 'periods' => $periods]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'No active timetable found for your class']);
+        }
+        exit;
+    }
+}
+
 mysqli_close($conn);
 ?>

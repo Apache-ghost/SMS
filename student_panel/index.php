@@ -256,6 +256,7 @@
 
                     <div style="display: inline;">
                   
+                    <b><a href="calendar.php" class="link-btn">📅 Calendar</a></b><br>
                     <b><a href="buspanel.php" class="link-btn">Bus Panel</a></b><br>
                     <b><a href="fee-payment.php" class="link-btn">Pay-Fee</a></b>
                     
