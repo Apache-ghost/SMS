@@ -52,6 +52,7 @@ if (isset($_SESSION['parent_id']) && isset($_SESSION['role']) && $_SESSION['role
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css" />
   <link rel="stylesheet" href="css/decorative-elements.css">
+  <link rel="stylesheet" href="css/text-enhancements.css">
   <link rel="stylesheet" href="login-form-style.css">
   <link rel="icon" type="image/x-icon" href="images/1.png">
 </head>

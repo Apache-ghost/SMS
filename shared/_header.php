@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="css/animations.css" />
   <link rel="stylesheet" href="css/decorative-elements.css" />
+  <link rel="stylesheet" href="css/text-enhancements.css" />
+  <link rel="stylesheet" href="css/modern-enhancements.css" />
   <link rel="stylesheet" href="shared/style.css" />
   <link rel="icon" type="image/x-icon" href="images/1.png">
 </head>

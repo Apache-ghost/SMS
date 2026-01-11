@@ -29,10 +29,10 @@ body {
 
 .container {
   position: relative;
-  max-width: 850px;
+  max-width: 750px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 40px 30px;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 30px 25px;
   box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
   perspective: 2700px;
   border-radius: 20px;
@@ -123,17 +123,18 @@ body {
 
 .cover .text .text-1,
 .cover .text .text-2 {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 600;
   color: #fff;
   text-align: center;
   text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+  line-height: 1.4;
 }
 
 .cover .text .text-2 {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .container .forms {
@@ -156,10 +157,10 @@ body {
 
 .forms .form-content .title {
   position: relative;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 .forms .form-content .title:before {
@@ -168,21 +169,21 @@ body {
   left: 0;
   bottom: -5px;
   height: 3px;
-  width: 50px;
+  width: 45px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 5px;
 }
 
 .forms .form-content .input-boxes {
-  margin-top: 30px;
+  margin-top: 25px;
 }
 
 .forms .form-content .input-box {
   display: flex;
   align-items: center;
-  height: 50px;
+  height: 48px;
   width: 100%;
-  margin: 15px 0;
+  margin: 12px 0;
   position: relative;
   border-radius: 10px;
   overflow: hidden;
@@ -195,7 +196,7 @@ body {
   outline: none;
   border: 2px solid #ddd;
   padding: 0 15px 0 50px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 400;
   color: #333;
   border-radius: 10px;
@@ -249,7 +250,7 @@ body {
 
 .form-content .button {
   color: #fff;
-  margin-top: 40px;
+  margin-top: 30px;
 }
 
 .form-content .button button {
@@ -257,10 +258,10 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 10px;
   border: none;
-  padding: 12px 25px;
+  padding: 11px 20px;
   cursor: pointer;
   transition: all 0.4s ease;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   width: 100%;
   box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);

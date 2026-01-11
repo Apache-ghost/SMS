@@ -29,17 +29,21 @@
         <div class="row">
           <div class="col-12 col-md-6 d-flex justify-content-center get-started animate-fade-in-left" style="height: 550px;">
             <div class=" d-flex justify-content-center align-items-center">
-              <div>
+              <div class="hero-content">
+                <div class="label-text animate-fade-in-down">🎓 MODERN SCHOOL MANAGEMENT</div>
                 <div class="big-title">
-                  <h1>Future is here,</h1>
-                  <h1>Start Exploring now.</h1>
+                  <h1>Future is Here,</h1>
+                  <h1>Start Exploring Now.</h1>
                 </div>
-                <p class="text">
-                  streamline processes, manage resources, track student data, facilitate
+                <p class="text subtitle-text">
+                  Streamline processes, manage resources, track student data, facilitate
                   communication, and enhance administrative tasks effectively.
                 </p>
                 <div class="cta animate-bounce-in animate-delay-3">
-                  <a href="login.php" class="btn btn-modern">Get started</a>
+                  <a href="login.php" class="btn btn-modern">
+                    <span>Get Started</span>
+                    <i class="fas fa-arrow-right" style="margin-left: 10px;"></i>
+                  </a>
                 </div>
 
 

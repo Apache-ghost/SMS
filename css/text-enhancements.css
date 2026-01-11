@@ -1,0 +1,317 @@
+/* ========================================
+   MODERN TEXT ENHANCEMENTS
+   ======================================== */
+
+/* Better font rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Headings with gradient text */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 1rem;
+}
+
+/* Paragraph improvements */
+p {
+  line-height: 1.8;
+  margin-bottom: 1.2rem;
+  font-weight: 400;
+}
+
+/* Modern text selection */
+::selection {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+::-moz-selection {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Improved link styles */
+a {
+  color: #667eea;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+a:hover {
+  color: #764ba2;
+}
+
+/* Text shadow for depth */
+.text-depth {
+  text-shadow: 
+    0 1px 0 rgba(255, 255, 255, 0.5),
+    0 2px 3px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.big-wrapper.dark .text-depth {
+  text-shadow: 
+    0 1px 0 rgba(0, 0, 0, 0.5),
+    0 2px 3px rgba(0, 0, 0, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Highlighted text effect */
+.highlight-text {
+  position: relative;
+  display: inline-block;
+}
+
+.highlight-text::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 30%;
+  background: linear-gradient(90deg, rgba(102, 126, 234, 0.3), rgba(240, 147, 251, 0.3));
+  z-index: -1;
+  transform: skewY(-1deg);
+  border-radius: 3px;
+}
+
+/* Animated underline on hover */
+.animated-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.animated-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animated-underline:hover::after {
+  width: 100%;
+}
+
+/* Badge/Tag styles */
+.text-badge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #667eea;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.text-badge:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.25), rgba(118, 75, 162, 0.25));
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Quote styles */
+.modern-quote {
+  position: relative;
+  padding: 2rem;
+  margin: 2rem 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 255, 0.9));
+  border-left: 5px solid #667eea;
+  border-radius: 10px;
+  font-style: italic;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.big-wrapper.dark .modern-quote {
+  background: linear-gradient(135deg, rgba(45, 45, 65, 0.9), rgba(35, 35, 55, 0.9));
+  border-left-color: #64bcf4;
+}
+
+.modern-quote::before {
+  content: '"';
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  font-size: 4rem;
+  color: #667eea;
+  opacity: 0.3;
+  font-family: Georgia, serif;
+}
+
+/* List styles */
+.modern-list {
+  list-style: none;
+  padding: 0;
+}
+
+.modern-list li {
+  position: relative;
+  padding-left: 2rem;
+  margin-bottom: 1rem;
+  line-height: 1.8;
+}
+
+.modern-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #667eea;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* Caption text */
+.caption-text {
+  font-size: 0.9rem;
+  color: var(--lightOne);
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+.big-wrapper.dark .caption-text {
+  color: var(--lightTwo);
+}
+
+/* Emphasized text */
+.text-emphasis {
+  font-weight: 600;
+  color: #667eea;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Numeric display */
+.number-display {
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+/* Label text */
+.label-text {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  color: var(--lightOne);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.big-wrapper.dark .label-text {
+  color: var(--lightTwo);
+}
+
+/* Drop cap for first letter */
+.drop-cap::first-letter {
+  float: left;
+  font-size: 4rem;
+  line-height: 0.8;
+  margin: 0.1rem 0.5rem 0 0;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtitle text */
+.subtitle-text {
+  font-size: 1.3rem;
+  color: var(--lightOne);
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.big-wrapper.dark .subtitle-text {
+  color: var(--lightTwo);
+}
+
+/* Responsive text sizes */
+@media screen and (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
+  }
+  
+  h2 {
+    font-size: 1.75rem;
+  }
+  
+  h3 {
+    font-size: 1.5rem;
+  }
+  
+  p {
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+  
+  .number-display {
+    font-size: 2.5rem;
+  }
+  
+  .modern-quote {
+    padding: 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+/* Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better focus states for accessibility */
+a:focus,
+button:focus,
+input:focus,
+textarea:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Loading text animation */
+@keyframes textShimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.loading-text {
+  background: linear-gradient(
+    90deg,
+    rgba(102, 126, 234, 0.2) 0%,
+    rgba(102, 126, 234, 0.5) 50%,
+    rgba(102, 126, 234, 0.2) 100%
+  );
+  background-size: 1000px 100%;
+  animation: textShimmer 2s infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
