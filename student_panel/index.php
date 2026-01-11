@@ -183,29 +183,43 @@
             <div class="profile">
                 <div class="top">
                     <?php
-
+                    // Ensure session is started and user ID is available
+                    if(!isset($_SESSION['uid'])) {
+                        header("Location: ../login.php");
+                        exit();
+                    }
+                    
                     $id = $_SESSION['uid'];
-                    $query_sql = "SELECT * FROM students WHERE id='$id'";
-                    $result = mysqli_query($conn, $query_sql);
-                    $row = $result->fetch_assoc();
+                    // Use prepared statement for security
+                    $query_sql = "SELECT * FROM students WHERE id=?";
+                    $stmt = mysqli_prepare($conn, $query_sql);
+                    mysqli_stmt_bind_param($stmt, "s", $id);
+                    mysqli_stmt_execute($stmt);
+                    $result = mysqli_stmt_get_result($stmt);
+                    $row = mysqli_fetch_assoc($result);
+                    
+                    // Default image if none exists
+                    $studentImage = isset($row['image']) && !empty($row['image']) ? $row['image'] : 'default-avatar.png';
                     echo "<div class='profile-photo'>
-                        <img src='../studentUploads/" . $row['image'] . "'>
+                        <img src='../studentUploads/" . htmlspecialchars($studentImage) . "' alt='Student Profile'>
                     </div>";
+                    mysqli_stmt_close($stmt);
                     ?>
 
                     <div class="info">
                         <?php
-                        session_start();
+                        // Use the same ID from session with prepared statement
                         $id = $_SESSION['uid'];
-                        $query = "select * from students where id='$id'";
-                        $result = $conn->query($query);
-                        if ($result->num_rows > 0) {
-                            while ($row = $result->fetch_assoc()) {
-                                echo "
-                            <p>Hey, <b>" . $row["fname"] . "</b> </p>
-                        <small class='text-muted'><b>ID&nbsp;:&nbsp;</b>" . $row["id"] . "</small>";
-                            }
+                        $query = "SELECT * FROM students WHERE id=?";
+                        $stmt = mysqli_prepare($conn, $query);
+                        mysqli_stmt_bind_param($stmt, "s", $id);
+                        mysqli_stmt_execute($stmt);
+                        $result = mysqli_stmt_get_result($stmt);
+                        if ($row = mysqli_fetch_assoc($result)) {
+                            echo "<p>Hey, <b>" . htmlspecialchars($row["fname"]) . "</b> </p>
+                        <small class='text-muted'><b>ID&nbsp;:&nbsp;</b>" . htmlspecialchars($row["id"]) . "</small>";
                         }
+                        mysqli_stmt_close($stmt);
                         ?>
 
                     </div>
@@ -218,12 +232,15 @@
                         ></div>
                 <div class="about">
                     <?php
-                    $query = "select * from students where id='$id'";
-                    $result = $conn->query($query);
-                    if ($result->num_rows > 0) {
-                        while ($row = $result->fetch_assoc()) {
-                            echo "<p><h5>Class : " . $row["class"] . "</h5></p>
-                    <p>Section " . $row["section"] . "</p>
+                    $id = $_SESSION['uid'];
+                    $query = "SELECT * FROM students WHERE id=?";
+                    $stmt = mysqli_prepare($conn, $query);
+                    mysqli_stmt_bind_param($stmt, "s", $id);
+                    mysqli_stmt_execute($stmt);
+                    $result = mysqli_stmt_get_result($stmt);
+                    if ($row = mysqli_fetch_assoc($result)) {
+                        echo "<p><h5>Class : " . htmlspecialchars($row["class"]) . "</h5></p>
+                    <p>Section " . htmlspecialchars($row["section"]) . "</p>
                     <h5>DOB</h5>
                     <p>" . $row["dob"] . "</p>
                     <h5>Contact</h5>
@@ -232,8 +249,8 @@
                     <p>" . $row["email"] . "</p>
                     <h5>Address</h5>
                     <p>" . $row["address"] . "</p>";
-                        }
                     }
+                    mysqli_stmt_close($stmt);
 
                     ?><br>
 
@@ -261,26 +278,34 @@
                 <h2>Syllabus</h2>
                 <?php
                 $id = $_SESSION['uid'];
-                $query_sql = "SELECT * FROM students WHERE id='$id'";
-                $result = mysqli_query($conn, $query_sql);
-                $row = $result->fetch_assoc();
+                $query_sql = "SELECT class FROM students WHERE id=?";
+                $stmt = mysqli_prepare($conn, $query_sql);
+                mysqli_stmt_bind_param($stmt, "s", $id);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                $row = mysqli_fetch_assoc($result);
                 $class = $row['class'];
+                mysqli_stmt_close($stmt);
 
-                $sql2 = "SELECT * FROM syllabus WHERE class='$class'";
-                $result2 = mysqli_query($conn, $sql2);
-                if ($result2->num_rows > 0) {
-                    while ($row2 = $result2->fetch_assoc()) {
+                $sql2 = "SELECT * FROM syllabus WHERE class=?";
+                $stmt2 = mysqli_prepare($conn, $sql2);
+                mysqli_stmt_bind_param($stmt2, "s", $class);
+                mysqli_stmt_execute($stmt2);
+                $result2 = mysqli_stmt_get_result($stmt2);
+                if (mysqli_num_rows($result2) > 0) {
+                    while ($row2 = mysqli_fetch_assoc($result2)) {
                         echo "<div class='teacher'>
                     <div class='profile-photo'>
-                    <a href='../syllabusUploads/" . $row2['file'] . "'>
+                    <a href='../syllabusUploads/" . htmlspecialchars($row2['file']) . "'>
                     <img src='./images/profile-2.png' alt=''></div>
                     <div class='info'>
-                        <h3>" . $row2['subject'] . "</h3>
+                        <h3>" . htmlspecialchars($row2['subject']) . "</h3>
                         <small class='text-muted'>Download or View</small>
                         </a>
                     </div>
                 </div>";
                     }
+                    mysqli_stmt_close($stmt2);
                 } else {
                     echo '<p style="padding-left: 20px;margin-top: 10px;">Syllabus not uploaded yet!</p>';
                 }
@@ -288,6 +313,76 @@
 
 
             </div>
+            
+            <!-- Curriculum Section -->
+            <div class="leaves" style="margin-top: 20px;">
+                <h2>My Curriculum</h2>
+                <?php
+                $id = $_SESSION['uid'];
+                $query_sql = "SELECT class FROM students WHERE id=?";
+                $stmt = mysqli_prepare($conn, $query_sql);
+                mysqli_stmt_bind_param($stmt, "s", $id);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                $row = mysqli_fetch_assoc($result);
+                $class = $row['class'];
+                mysqli_stmt_close($stmt);
+
+                // Fetch curriculum for student's class
+                $currSql = "SELECT cm.*, 
+                            (SELECT COUNT(*) FROM curriculum_subjects cs WHERE cs.curriculum_id = cm.curriculum_id) as subject_count
+                            FROM curriculum_master cm 
+                            WHERE cm.class=? AND cm.status='active' 
+                            ORDER BY cm.created_at DESC LIMIT 1";
+                $currStmt = mysqli_prepare($conn, $currSql);
+                $classNum = intval($class);
+                mysqli_stmt_bind_param($currStmt, "i", $classNum);
+                mysqli_stmt_execute($currStmt);
+                $currResult = mysqli_stmt_get_result($currStmt);
+                
+                if ($currRow = mysqli_fetch_assoc($currResult)) {
+                    echo "<div style='background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px;'>";
+                    echo "<h4 style='color: #667eea;'>" . htmlspecialchars($currRow['curriculum_name']) . "</h4>";
+                    echo "<p><strong>Academic Year:</strong> " . htmlspecialchars($currRow['academic_year']) . "</p>";
+                    if (!empty($currRow['department_code'])) {
+                        echo "<p><strong>Department:</strong> " . htmlspecialchars($currRow['department_code']) . "</p>";
+                    }
+                    echo "<p><strong>Total Subjects:</strong> " . $currRow['subject_count'] . "</p>";
+                    echo "</div>";
+                    
+                    // Fetch and display subjects with subject names from subjects table
+                    $subSql = "SELECT cs.*, s.subject_name 
+                              FROM curriculum_subjects cs 
+                              LEFT JOIN subjects s ON cs.course_code = s.subject_id 
+                              WHERE cs.curriculum_id=? 
+                              ORDER BY s.subject_name";
+                    $subStmt = mysqli_prepare($conn, $subSql);
+                    mysqli_stmt_bind_param($subStmt, "i", $currRow['curriculum_id']);
+                    mysqli_stmt_execute($subStmt);
+                    $subResult = mysqli_stmt_get_result($subStmt);
+                    
+                    echo "<div style='display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;'>";
+                    while ($subRow = mysqli_fetch_assoc($subResult)) {
+                        $totalHours = intval($subRow['theory_hours']) + intval($subRow['practical_hours']);
+                        $subjectName = $subRow['subject_name'] ?? 'Subject ' . $subRow['course_code'];
+                        echo "<div style='background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;'>";
+                        echo "<h5 style='margin: 0 0 5px 0; color: #333;'>" . htmlspecialchars($subjectName) . "</h5>";
+                        echo "<p style='margin: 0; color: #666; font-size: 13px;'>Code: " . htmlspecialchars($subRow['course_code']) . "</p>";
+                        echo "<p style='margin: 5px 0 0 0; color: #667eea; font-size: 12px;'>" . $totalHours . " hours/week</p>";
+                        if ($subRow['is_mandatory']) {
+                            echo "<span style='background: #10b981; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;'>Mandatory</span>";
+                        }
+                        echo "</div>";
+                    }
+                    echo "</div>";
+                    mysqli_stmt_close($subStmt);
+                } else {
+                    echo '<p style="padding-left: 20px;margin-top: 10px;">Curriculum not available yet!</p>';
+                }
+                mysqli_stmt_close($currStmt);
+                ?>
+            </div>
+            
             <div class="timetable" id="timetable">
                 <h2>Monthly Attendance</h2>
                 <input type="text" id="myInput" onkeyup="myFunction()" placeholder="Search for Date...">
@@ -312,21 +407,29 @@
                     <div class="message">
                         <?php
                         $id = $_SESSION['uid'];
-                        $query_sql2 = "SELECT * FROM students WHERE id='$id'";
-                        $result = mysqli_query($conn, $query_sql2);
-                        $row = $result->fetch_assoc();
+                        $query_sql2 = "SELECT class FROM students WHERE id=?";
+                        $stmt = mysqli_prepare($conn, $query_sql2);
+                        mysqli_stmt_bind_param($stmt, "s", $id);
+                        mysqli_stmt_execute($stmt);
+                        $result = mysqli_stmt_get_result($stmt);
+                        $row = mysqli_fetch_assoc($result);
                         $class = $row['class'];
+                        mysqli_stmt_close($stmt);
 
-                        $sql_query = "SELECT * FROM notice WHERE (role = 'student' AND class='$class') OR (role = 'all' OR role='') ORDER BY s_no DESC LIMIT 3";
-                        $result = mysqli_query($conn, $sql_query);
-                        if ($result->num_rows > 0) {
-                            while ($row = $result->fetch_assoc()) {
-                                echo "<p> <b>" . $row['title'] . "</b> <br>" . $row['body'] . "<br></p>";
+                        $sql_query = "SELECT * FROM notice WHERE (role = 'student' AND class=?) OR (role = 'all' OR role='') ORDER BY s_no DESC LIMIT 3";
+                        $stmt2 = mysqli_prepare($conn, $sql_query);
+                        mysqli_stmt_bind_param($stmt2, "s", $class);
+                        mysqli_stmt_execute($stmt2);
+                        $result = mysqli_stmt_get_result($stmt2);
+                        if (mysqli_num_rows($result) > 0) {
+                            while ($row = mysqli_fetch_assoc($result)) {
+                                echo "<p> <b>" . htmlspecialchars($row['title']) . "</b> <br>" . htmlspecialchars($row['body']) . "<br></p>";
                                 if ($row['file'] != null) {
-                                    echo "<a href='../noticeUploads/" . $row['file'] . "'><img src='file.svg' height='30px' width='30px'><p style='color:red;'>View Notice</p></a>";
+                                    echo "<a href='../noticeUploads/" . htmlspecialchars($row['file']) . "'><img src='file.svg' height='30px' width='30px'><p style='color:red;'>View Notice</p></a>";
                                 }
-                                echo "<small class='text-muted'><b>" . $row['timestamp'] . "</b></small><hr><br>";
+                                echo "<small class='text-muted'><b>" . htmlspecialchars($row['timestamp']) . "</b></small><hr><br>";
                             }
+                            mysqli_stmt_close($stmt2);
                         }
                         ?>
 

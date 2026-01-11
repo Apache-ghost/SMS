@@ -364,3 +364,214 @@ body {
     font-size: 24px;
   }
 }
+
+/* ========================================
+   SIGNUP FORM ENHANCEMENTS
+   ======================================== */
+
+.signup-link {
+  color: #666;
+  font-size: 14px;
+  margin-top: 15px;
+}
+
+.signup-link a {
+  color: #667eea;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.signup-link a:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+/* Row styling for signup form */
+#signup-form .row {
+  margin: 0 -7.5px;
+}
+
+#signup-form .col-md-6 {
+  padding: 0 7.5px;
+}
+
+#signup-form .input-box {
+  margin: 12px 0;
+}
+
+/* Select dropdown styling */
+#signup-form select {
+  font-size: 15px;
+  font-weight: 400;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+#signup-form select:focus {
+  border-color: #667eea;
+  background: #fff;
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px);
+}
+
+#signup-form select option {
+  padding: 10px;
+}
+
+/* Date input styling */
+#signup-form input[type="date"] {
+  font-family: "Poppins", sans-serif;
+  color: #333;
+}
+
+#signup-form input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.5);
+  transition: all 0.3s ease;
+}
+
+#signup-form input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  filter: invert(0.3);
+}
+
+/* Loading button animation */
+.button button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.button button .fa-spinner {
+  margin-right: 8px;
+}
+
+/* Success state */
+.form-success {
+  animation: successPulse 0.5s ease;
+}
+
+@keyframes successPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN FOR MOBILE
+   ======================================== */
+@media (max-width: 768px) {
+  body {
+    padding: 15px;
+  }
+  
+  .container {
+    max-width: 100%;
+    padding: 25px 20px;
+  }
+  
+  .container .forms {
+    width: 100%;
+  }
+  
+  .login-form,
+  #signup-form,
+  #forgot-password-form,
+  #verify-otp-form,
+  #create-new-password-form {
+    padding: 20px 15px;
+  }
+  
+  .login-form .title,
+  #signup-form .title {
+    font-size: 22px;
+  }
+  
+  .forms .form-content .input-box {
+    height: 45px;
+    margin: 10px 0;
+  }
+  
+  .forms .form-content .input-box input {
+    font-size: 14px;
+    padding: 0 12px;
+  }
+  
+  .forms .form-content .button {
+    margin-top: 15px;
+  }
+  
+  .forms .form-content .button button {
+    font-size: 15px;
+    padding: 10px 0;
+  }
+  
+  .text.signup-link {
+    font-size: 13px;
+    margin-top: 10px !important;
+  }
+  
+  .text.signup-link a {
+    font-size: 13px;
+  }
+  
+  /* Signup form specific mobile styles */
+  #signup-form .input-box {
+    margin: 8px 0;
+  }
+  
+  #signup-form input[type="text"],
+  #signup-form input[type="email"],
+  #signup-form input[type="tel"],
+  #signup-form input[type="password"] {
+    font-size: 14px;
+    height: 45px;
+  }
+  
+  #signupPasswordMismatch {
+    font-size: 12px;
+    padding: 8px;
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 10px;
+  }
+  
+  .container {
+    padding: 20px 15px;
+    border-radius: 15px;
+  }
+  
+  .login-form .title,
+  #signup-form .title {
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+  
+  .forms .form-content .input-box {
+    height: 42px;
+    margin: 8px 0;
+  }
+  
+  .forms .form-content .input-box input {
+    font-size: 13px;
+  }
+  
+  .forms .form-content .button button {
+    font-size: 14px;
+    padding: 9px 0;
+  }
+  
+  .text.signup-link {
+    font-size: 12px;
+  }
+  
+  .text.signup-link a {
+    font-size: 12px;
+  }
+}

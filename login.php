@@ -114,6 +114,57 @@ if (isset($_SESSION['parent_id']) && isset($_SESSION['role']) && $_SESSION['role
                   Submit
                 </button>
               </div>
+              <div class="text signup-link" style="margin-top: 15px; text-align: center;">
+                Don't have an account? <a href="javascript:void(0);" id="showSignup" onclick="showStudentSignup()" style="font-weight: 600; color: #667eea; cursor: pointer;">Sign up as Student</a>
+              </div>
+            </div>
+          </form>
+
+
+          <!-- Student Signup Form -->
+          <form action="index.php" id="signup-form" method="post" style="display:none;">
+
+            <div class="input-boxes">
+              <div class="input-box">
+                <i class="fas fa-user"></i>
+                <input type="text" name="fname" placeholder="Full Name" id='signupFullName' required>
+              </div>
+              
+              <div class="input-box">
+                <i class="fas fa-envelope"></i>
+                <input type="email" name="email" placeholder="Email Address" id='signupEmail' required>
+              </div>
+              
+              <div class="input-box">
+                <i class="fas fa-phone"></i>
+                <input type="tel" name="phone" placeholder="Phone Number (at least 9 digits)" id='signupPhone' pattern="[0-9]{9,}" required>
+              </div>
+              
+              <div class="input-box">
+                <i class="fas fa-lock"></i>
+                <input type="password" name="password" placeholder="Create Password (min 6 characters)" id="signupPassword" required>
+                <i class="bi bi-eye-fill" style="margin-left:auto;margin-right: 6px;" id="toggleSignupPassword"></i>
+              </div>
+              
+              <div class="input-box">
+                <i class="fas fa-lock"></i>
+                <input type="password" name="confirm_password" placeholder="Confirm Password" id="signupConfirmPassword" required>
+              </div>
+
+              <div class="invalid-feedback" id='signupPasswordMismatch' style="display: none; color: #dc3545; font-size: 13px; margin-top: -10px; margin-bottom: 10px;">
+                Passwords do not match!
+              </div>
+
+              <div class="text" style="margin-bottom: 20px;display:flex">
+                <a href="javascript:void(0);" id="backToLoginFromSignup" onclick="backToLoginFromSignupForm()" style="cursor: pointer;">Already have an account? Login</a>
+              </div>
+
+              <div class="button input-box">
+                <button type="submit" id='signupBtn'>
+                  Create Account
+                </button>
+              </div>
+
             </div>
           </form>
 
@@ -213,6 +264,59 @@ if (isset($_SESSION['parent_id']) && isset($_SESSION['role']) && $_SESSION['role
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="index.js"></script>
+  
+  <script>
+    // Simple inline function to show signup form - guaranteed to work
+    function showStudentSignup() {
+      console.log('showStudentSignup called');
+      
+      // Hide login form
+      var loginForm = document.getElementById('login-form');
+      if (loginForm) loginForm.style.display = 'none';
+      
+      // Hide other forms
+      var forgotForm = document.getElementById('forgotPassword-form');
+      if (forgotForm) forgotForm.style.display = 'none';
+      
+      var otpForm = document.getElementById('otpVarification-form');
+      if (otpForm) otpForm.style.display = 'none';
+      
+      var newPwdForm = document.getElementById('createNewPassword-form');
+      if (newPwdForm) newPwdForm.style.display = 'none';
+      
+      // Show signup form
+      var signupForm = document.getElementById('signup-form');
+      if (signupForm) {
+        signupForm.style.display = 'block';
+        console.log('Signup form displayed');
+      } else {
+        console.error('signup-form not found!');
+      }
+      
+      // Update title
+      var title = document.getElementById('board-title');
+      if (title) title.innerHTML = 'Student Sign Up';
+      
+      // Hide alert box
+      var alertBox = document.querySelector('.alert-box');
+      if (alertBox) alertBox.style.display = 'none';
+    }
+    
+    // Back to login function
+    function backToLoginFromSignupForm() {
+      var signupForm = document.getElementById('signup-form');
+      if (signupForm) {
+        signupForm.style.display = 'none';
+        signupForm.reset();
+      }
+      
+      var loginForm = document.getElementById('login-form');
+      if (loginForm) loginForm.style.display = 'block';
+      
+      var title = document.getElementById('board-title');
+      if (title) title.innerHTML = 'Login';
+    }
+  </script>
 
 
 </body>

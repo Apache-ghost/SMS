@@ -131,11 +131,18 @@ function hideLoginForm(hide){
     document.getElementById('forgotPassword-form').reset();
     document.getElementById('otpVarification-form').reset();
     document.getElementById('createNewPassword-form').reset();
+    if(document.getElementById('signup-form')){
+        document.getElementById('signup-form').reset();
+    }
     if(hide){
         document.getElementById('login-form').style.display = 'none';
     }else{
         document.getElementById('login-form').style.display = 'block';
         document.getElementById('board-title').innerHTML = 'Login';
+        // Hide signup form when showing login
+        if(document.getElementById('signup-form')){
+            document.getElementById('signup-form').style.display = 'none';
+        }
     }
 }
 function hideforgotPasswordForm(hide){
@@ -481,3 +488,233 @@ function isStrongPassword() {
             label.innerHTML = 'Show password';
         }
     });
+
+
+// ========================================
+// STUDENT SIGNUP FUNCTIONALITY
+// ========================================
+
+// Wait for DOM to be fully loaded before attaching signup event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, setting up signup functionality...');
+    
+    // Show signup form - wrapped in check to ensure element exists
+    const showSignupBtn = document.getElementById('showSignup');
+    if (showSignupBtn) {
+        console.log('showSignup button found, attaching click listener');
+        showSignupBtn.addEventListener('click', function(e){
+            e.preventDefault(); // Prevent default link behavior
+            console.log('Signup button clicked!'); // Debug log
+            hideLoginForm(true);
+            hideforgotPasswordForm(true);
+            hideVerifyOtpForm(true);
+            hideCreateNewPasswordForm(true);
+            showSignupForm(true);
+            document.getElementById('board-title').innerHTML = 'Student Sign Up';
+            console.log('Signup form should now be visible'); // Debug log
+        });
+    } else {
+        console.error('showSignup button not found!');
+    }
+
+    // Back to login from signup
+    const backToLoginBtn = document.getElementById('backToLoginFromSignup');
+    if (backToLoginBtn) {
+        backToLoginBtn.addEventListener('click', function(e){
+            e.preventDefault(); // Prevent default behavior
+            showSignupForm(false);
+            hideLoginForm(false);
+            document.getElementById('board-title').innerHTML = 'Login';
+            console.log('Back to login'); // Debug log
+        });
+    }
+});
+
+// Toggle signup password visibility
+const toggleSignupPassword = document.querySelector("#toggleSignupPassword");
+const signupPassword = document.querySelector("#signupPassword");
+
+if (toggleSignupPassword) {
+    toggleSignupPassword.addEventListener("click", function () {
+        const type = signupPassword.getAttribute("type") === "password" ? "text" : "password";
+        signupPassword.setAttribute("type", type);
+        this.classList.toggle("bi-eye-slash-fill");
+    });
+}
+
+// Show/hide signup form
+function showSignupForm(show){
+    console.log('showSignupForm called with:', show);
+    
+    const alertBox = document.querySelector('.alert-box');
+    const passwordMismatch = document.getElementById('signupPasswordMismatch');
+    const signupForm = document.getElementById('signup-form');
+    
+    if (alertBox) alertBox.style.display = 'none';
+    if (passwordMismatch) passwordMismatch.style.display = 'none';
+    
+    if (!signupForm) {
+        console.error('signup-form element not found!');
+        return;
+    }
+    
+    if(show){
+        signupForm.style.display = 'block';
+        console.log('Signup form display set to block');
+    }else{
+        signupForm.style.display = 'none';
+        signupForm.reset();
+        console.log('Signup form hidden');
+    }
+}
+
+// Real-time password match validation
+const signupConfirmPasswordField = document.getElementById('signupConfirmPassword');
+if (signupConfirmPasswordField) {
+    signupConfirmPasswordField.addEventListener('keyup', function(){
+        const password = document.getElementById('signupPassword').value;
+        const confirmPassword = this.value;
+        const mismatchMsg = document.getElementById('signupPasswordMismatch');
+        
+        if(confirmPassword !== '' && password !== confirmPassword){
+            mismatchMsg.style.display = 'block';
+        } else {
+            mismatchMsg.style.display = 'none';
+        }
+    });
+}
+
+// Clear error messages on input
+const signupInputs = ['signupFullName', 'signupEmail', 'signupPhone', 'signupPassword', 'signupConfirmPassword'];
+
+signupInputs.forEach(inputId => {
+    const element = document.getElementById(inputId);
+    if(element) {
+        element.addEventListener('keyup', () => {
+            const errorbox = document.querySelector('.alert-box');
+            const error_msg = document.getElementById('error-msg');
+            if (errorbox) errorbox.style.display = 'none';
+            if (error_msg) error_msg.innerHTML = '';
+        });
+    }
+});
+
+// Handle signup form submission
+const signupForm = document.getElementById('signup-form');
+if (signupForm) {
+    signupForm.addEventListener('submit', function(event){
+        event.preventDefault();
+        
+        const password = document.getElementById('signupPassword').value;
+        const confirmPassword = document.getElementById('signupConfirmPassword').value;
+        const errorbox = document.querySelector('.alert-box');
+        const error_msg = document.getElementById('error-msg');
+        
+        // Validate password match
+        if(password !== confirmPassword){
+            if (errorbox) errorbox.style.display = 'block';
+            if (error_msg) {
+                error_msg.classList.remove('alert-success');
+                error_msg.classList.add('alert-danger');
+                error_msg.innerHTML = 'Passwords do not match!';
+            }
+            return;
+        }
+        
+        // Validate password strength
+        if(password.length < 6){
+            if (errorbox) errorbox.style.display = 'block';
+            if (error_msg) {
+                error_msg.classList.remove('alert-success');
+                error_msg.classList.add('alert-danger');
+                error_msg.innerHTML = 'Password must be at least 6 characters long!';
+            }
+            return;
+        }
+        
+        // Show loading state
+        const signupBtn = document.getElementById('signupBtn');
+        const originalText = signupBtn.innerHTML;
+        signupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+        signupBtn.disabled = true;
+        
+        const formData = new FormData(event.target);
+        
+        // Debug: log form data
+        console.log('Form data being sent:');
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+        
+        fetch('student-signup-backend.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response OK:', response.ok);
+            console.log('Response headers:', response.headers.get('content-type'));
+            
+            return response.text(); // Get response as text first
+        })
+        .then(text => {
+            console.log('Raw response length:', text.length);
+            console.log('Raw response:', text);
+            
+            if (!text || text.trim() === '') {
+                console.error('Empty response received from server');
+                signupBtn.innerHTML = originalText;
+                signupBtn.disabled = false;
+                if (errorbox) errorbox.style.display = 'block';
+                if (error_msg) {
+                    error_msg.classList.remove('alert-success');
+                    error_msg.classList.add('alert-danger');
+                    error_msg.innerHTML = 'Server returned empty response. Check if Apache/PHP is running.';
+                }
+                return;
+            }
+            
+            // Try to parse as JSON
+            try {
+                const data = JSON.parse(text);
+                signupBtn.innerHTML = originalText;
+                signupBtn.disabled = false;
+                
+                if (error_msg && errorbox) {
+                    error_msg.classList.remove('alert-danger', 'alert-success');
+                    error_msg.classList.add(data.status === "success" ? 'alert-success' : 'alert-danger');
+                    error_msg.innerHTML = data.message;
+                    errorbox.style.display = 'block';
+                }
+                
+                if (data.status === "success") {
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1500);
+                }
+            } catch (e) {
+                console.error('JSON parse error:', e);
+                console.error('Response was:', text);
+                signupBtn.innerHTML = originalText;
+                signupBtn.disabled = false;
+                if (errorbox) errorbox.style.display = 'block';
+                if (error_msg) {
+                    error_msg.classList.remove('alert-success');
+                    error_msg.classList.add('alert-danger');
+                    error_msg.innerHTML = 'Server error. Please check console for details.';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            signupBtn.innerHTML = originalText;
+            signupBtn.disabled = false;
+            if (errorbox) errorbox.style.display = 'block';
+            if (error_msg) {
+                error_msg.classList.remove('alert-success');
+                error_msg.classList.add('alert-danger');
+                error_msg.innerHTML = 'An error occurred. Please try again.';
+            }
+        });
+    });
+}
