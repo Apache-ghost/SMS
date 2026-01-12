@@ -511,7 +511,7 @@ header('X-Frame-Options: SAMEORIGIN');
             } else if (module === 'finance') {
                 window.location.href = 'finance.php';
             } else if (module === 'hr') {
-                alert('HR module coming soon!');
+                window.location.href = 'hr_dashboard.html';
             }
         }
 
