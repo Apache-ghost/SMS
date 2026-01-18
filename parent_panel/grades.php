@@ -115,49 +115,18 @@ function loadGrades() {
         </div>
     `;
     
-    fetch('../assets/fetchSubjectiveResults.php?student_id=' + studentId)
+    fetch('../assets/parentPortalHandler.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `action=get_student_grades&student_id=${studentId}`
+    })
     .then(response => response.json())
     .then(data => {
-        if (data && data.length > 0) {
-            let html = `
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Subject</th>
-                                <th>Exam</th>
-                                <th>Marks Obtained</th>
-                                <th>Total Marks</th>
-                                <th>Percentage</th>
-                                <th>Grade</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            data.forEach(grade => {
-                const percentage = ((grade.marks_obtained / grade.total_marks) * 100).toFixed(2);
-                const gradeValue = getGrade(percentage);
-                
-                html += `
-                    <tr>
-                        <td>${grade.subject}</td>
-                        <td>${grade.exam}</td>
-                        <td>${grade.marks_obtained}</td>
-                        <td>${grade.total_marks}</td>
-                        <td>${percentage}%</td>
-                        <td><span class="badge bg-${getGradeColor(gradeValue)}">${gradeValue}</span></td>
-                        <td>${grade.remarks || '-'}</td>
-                    </tr>
-                `;
-            });
-            
-            html += '</tbody></table></div>';
-            content.innerHTML = html;
+        if (data.status === 'success' && data.grades && data.grades.length > 0) {
+            displayGrades(data.grades);
         } else {
             content.innerHTML = `
-                <div class="text-center text-muted">
+                <div class="alert alert-info text-center">
                     <i class='bx bx-file' style='font-size: 60px;'></i>
                     <p class="mt-2">No grades found for this student</p>
                 </div>
@@ -165,9 +134,101 @@ function loadGrades() {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        content.innerHTML = '<p class="text-center text-danger">Error loading grades</p>';
+        console.error('Error loading grades:', error);
+        content.innerHTML = '<div class="alert alert-danger">Error loading grades. Please try again.</div>';
     });
+}
+
+function displayGrades(grades) {
+    const content = document.getElementById('gradesContent');
+    
+    // Group grades by exam
+    const groupedGrades = {};
+    grades.forEach(grade => {
+        if (!groupedGrades[grade.exam_name]) {
+            groupedGrades[grade.exam_name] = [];
+        }
+        groupedGrades[grade.exam_name].push(grade);
+    });
+    
+    let html = '';
+    
+    // Display each exam separately
+    Object.keys(groupedGrades).forEach(examName => {
+        const examGrades = groupedGrades[examName];
+        let totalMarks = 0;
+        let totalObtained = 0;
+        
+        html += `
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class='bx bx-book-open'></i> ${examName}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Marks Obtained</th>
+                                    <th>Total Marks</th>
+                                    <th>Percentage</th>
+                                    <th>Status</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+        `;
+        
+        examGrades.forEach(grade => {
+            const percentage = grade.percentage || 0;
+            const gradeValue = getGrade(percentage);
+            const statusClass = grade.status === 'Pass' ? 'success' : 'danger';
+            
+            totalObtained += parseFloat(grade.marks_obtained || 0);
+            totalMarks += parseFloat(grade.total_marks || 0);
+            
+            html += `
+                <tr>
+                    <td><strong>${grade.subject}</strong></td>
+                    <td>${grade.marks_obtained || 'N/A'}</td>
+                    <td>${grade.total_marks}</td>
+                    <td>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-${getGradeColor(gradeValue)}" 
+                                 style="width: ${percentage}%">${percentage}%</div>
+                        </div>
+                    </td>
+                    <td><span class="badge bg-${statusClass}">${grade.status}</span></td>
+                    <td>${grade.remarks || '-'}</td>
+                </tr>
+            `;
+        });
+        
+        const overallPercentage = totalMarks > 0 ? ((totalObtained / totalMarks) * 100).toFixed(2) : 0;
+        const overallGrade = getGrade(overallPercentage);
+        
+        html += `
+                            </tbody>
+                            <tfoot class="table-secondary">
+                                <tr>
+                                    <th>Overall</th>
+                                    <th>${totalObtained.toFixed(2)}</th>
+                                    <th>${totalMarks.toFixed(2)}</th>
+                                    <th colspan="3">
+                                        <strong>Percentage: ${overallPercentage}%</strong> | 
+                                        <span class="badge bg-${getGradeColor(overallGrade)} ms-2">${overallGrade}</span>
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    content.innerHTML = html;
 }
 
 function getGrade(percentage) {

@@ -336,6 +336,17 @@
 
             </div>
             
+            <!-- Announcements Section -->
+            <div class="leaves" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>📢 Announcements</h2>
+                    <span id="unreadCount" style="background: #ff0000; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px; display: none;"></span>
+                </div>
+                <div id="announcementsList" style="padding: 10px;">
+                    <p class="text-center">Loading announcements...</p>
+                </div>
+            </div>
+            
             <!-- Assignments Section -->
             <div class="leaves" style="margin-top: 20px;">
                 <h2>📝 My Assignments</h2>
@@ -372,12 +383,25 @@
                 
                 if ($currRow = mysqli_fetch_assoc($currResult)) {
                     echo "<div style='background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px;'>";
-                    echo "<h4 style='color: #667eea;'>" . htmlspecialchars($currRow['curriculum_name']) . "</h4>";
-                    echo "<p><strong>Academic Year:</strong> " . htmlspecialchars($currRow['academic_year']) . "</p>";
+                    echo "<div style='display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;'>";
+                    echo "<div style='flex: 1;'>";
+                    echo "<h4 style='color: #667eea; margin: 0 0 10px 0;'>" . htmlspecialchars($currRow['curriculum_name']) . "</h4>";
+                    echo "<p style='margin: 5px 0;'><strong>Academic Year:</strong> " . htmlspecialchars($currRow['academic_year']) . "</p>";
                     if (!empty($currRow['department_code'])) {
-                        echo "<p><strong>Department:</strong> " . htmlspecialchars($currRow['department_code']) . "</p>";
+                        echo "<p style='margin: 5px 0;'><strong>Department:</strong> " . htmlspecialchars($currRow['department_code']) . "</p>";
                     }
-                    echo "<p><strong>Total Subjects:</strong> " . $currRow['subject_count'] . "</p>";
+                    echo "<p style='margin: 5px 0;'><strong>Total Subjects:</strong> " . $currRow['subject_count'] . "</p>";
+                    echo "</div>";
+                    
+                    // Show download button if curriculum file exists
+                    if (!empty($currRow['file_path'])) {
+                        echo "<div>";
+                        echo "<a href='../curriculumUploads/" . htmlspecialchars($currRow['file_path']) . "' class='link-btn' download style='background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px;'>";
+                        echo "<i class='bx bx-download' style='font-size: 20px;'></i> Download Curriculum";
+                        echo "</a>";
+                        echo "</div>";
+                    }
+                    echo "</div>";
                     echo "</div>";
                     
                     // Fetch and display subjects with subject names from subjects table
@@ -683,6 +707,258 @@
         // Load assignments when page loads
         if (document.getElementById('assignmentsList')) {
             loadStudentAssignments();
+        }
+        
+        // Load announcements when page loads
+        if (document.getElementById('announcementsList')) {
+            loadStudentAnnouncements();
+        }
+        
+        // Function to load announcements
+        function loadStudentAnnouncements() {
+            fetch('../assets/fetchStudentAnnouncements.php')
+            .then(response => response.text())
+            .then(text => {
+                console.log('Announcements response:', text);
+                try {
+                    const data = JSON.parse(text);
+                    const container = document.getElementById('announcementsList');
+                    
+                    if (data.status === 'success' && data.data.length > 0) {
+                        const announcements = data.data;
+                        
+                        // Count unread announcements
+                        const unreadCount = announcements.filter(a => !a.is_read).length;
+                        const unreadBadge = document.getElementById('unreadCount');
+                        if (unreadCount > 0) {
+                            unreadBadge.textContent = `${unreadCount} New`;
+                            unreadBadge.style.display = 'inline-block';
+                        }
+                    
+                    let html = '';
+                    announcements.forEach(announcement => {
+                        const isPinned = announcement.is_pinned == 1;
+                        const isRead = announcement.is_read == 1;
+                        const priority = announcement.priority;
+                        
+                        let priorityColor = '#667eea';
+                        if (priority === 'urgent') priorityColor = '#ff0000';
+                        else if (priority === 'high') priorityColor = '#ff9800';
+                        else if (priority === 'normal') priorityColor = '#2196f3';
+                        
+                        let typeIcon = '📢';
+                        if (announcement.announcement_type === 'academic') typeIcon = '📚';
+                        else if (announcement.announcement_type === 'event') typeIcon = '🎉';
+                        else if (announcement.announcement_type === 'exam') typeIcon = '📝';
+                        else if (announcement.announcement_type === 'holiday') typeIcon = '🏖️';
+                        else if (announcement.announcement_type === 'emergency') typeIcon = '🚨';
+                        else if (announcement.announcement_type === 'sports') typeIcon = '⚽';
+                        
+                        html += `
+                            <div class="announcement-card" style="
+                                background: ${isRead ? '#f8f9fa' : '#ffffff'};
+                                border-left: 4px solid ${priorityColor};
+                                border-radius: 10px;
+                                padding: 15px;
+                                margin-bottom: 15px;
+                                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                                cursor: pointer;
+                                transition: transform 0.2s;
+                                ${!isRead ? 'border: 2px solid ' + priorityColor + ';' : ''}
+                            " onclick="showAnnouncementDetails(${announcement.announcement_id})">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                            <span style="font-size: 24px;">${typeIcon}</span>
+                                            ${isPinned ? '<i class="bx bx-pin" style="color: #ff0000; font-size: 20px;" title="Pinned"></i>' : ''}
+                                            ${!isRead ? '<span style="background: #ff0000; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;">NEW</span>' : ''}
+                                        </div>
+                                        <h4 style="margin: 5px 0; color: #333;">${announcement.title}</h4>
+                                        <p style="color: #666; font-size: 14px; margin: 8px 0; line-height: 1.5;">
+                                            ${announcement.content.substring(0, 150)}${announcement.content.length > 150 ? '...' : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                        <span style="font-size: 12px; color: #888;">
+                                            <i class='bx bx-user'></i> ${announcement.publisher_name}
+                                        </span>
+                                        <span style="font-size: 12px; color: #888;">
+                                            <i class='bx bx-calendar'></i> ${formatDateTime(announcement.published_date)}
+                                        </span>
+                                        <span style="font-size: 12px; padding: 2px 8px; background: ${priorityColor}; color: white; border-radius: 5px;">
+                                            ${announcement.priority.toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <i class='bx bx-chevron-right' style="font-size: 24px; color: ${priorityColor};"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                } else if (data.status === 'success') {
+                    container.innerHTML = '<p class="text-center text-muted" style="padding: 20px;">📢 No announcements at this time.</p>';
+                } else {
+                    container.innerHTML = '<p class="text-center text-danger">Error: ' + (data.message || 'Unknown error') + '</p>';
+                }
+            } catch (e) {
+                console.error('JSON parse error:', e);
+                console.error('Response text:', text);
+                document.getElementById('announcementsList').innerHTML = '<p class="text-center text-danger">Error: Invalid response from server. Check console for details.</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            document.getElementById('announcementsList').innerHTML = '<p class="text-center text-danger">Error loading announcements: ' + error.message + '</p>';
+        });
+    }
+        
+        // Show announcement details in modal
+        function showAnnouncementDetails(announcementId) {
+            // Fetch full announcement details
+            const formData = new FormData();
+            formData.append('action', 'get_announcement_details');
+            formData.append('announcement_id', announcementId);
+            
+            fetch('../assets/manageAnnouncements.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayAnnouncementModal(data.data);
+                    // Mark as read
+                    markAnnouncementAsRead(announcementId);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        function displayAnnouncementModal(announcement) {
+            let typeIcon = '📢';
+            if (announcement.announcement_type === 'academic') typeIcon = '📚';
+            else if (announcement.announcement_type === 'event') typeIcon = '🎉';
+            else if (announcement.announcement_type === 'exam') typeIcon = '📝';
+            else if (announcement.announcement_type === 'holiday') typeIcon = '🏖️';
+            else if (announcement.announcement_type === 'emergency') typeIcon = '🚨';
+            else if (announcement.announcement_type === 'sports') typeIcon = '⚽';
+            
+            const modalHTML = `
+                <div id="announcementModal" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 9999;
+                " onclick="closeAnnouncementModal(event)">
+                    <div style="
+                        background: white;
+                        border-radius: 15px;
+                        padding: 30px;
+                        max-width: 600px;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    " onclick="event.stopPropagation()">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span style="font-size: 40px;">${typeIcon}</span>
+                                <div>
+                                    <h2 style="margin: 0; color: #333;">${announcement.title}</h2>
+                                    <p style="margin: 5px 0 0 0; color: #888; font-size: 14px;">
+                                        <i class='bx bx-user'></i> ${announcement.publisher_name} • 
+                                        <i class='bx bx-calendar'></i> ${formatDateTime(announcement.published_date)}
+                                    </p>
+                                </div>
+                            </div>
+                            <button onclick="closeAnnouncementModal()" style="
+                                background: none;
+                                border: none;
+                                font-size: 30px;
+                                cursor: pointer;
+                                color: #999;
+                            ">&times;</button>
+                        </div>
+                        
+                        <div style="margin: 20px 0;">
+                            <span style="background: #667eea; color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; text-transform: uppercase;">
+                                ${announcement.announcement_type}
+                            </span>
+                            <span style="background: #ff9800; color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; text-transform: uppercase; margin-left: 10px;">
+                                ${announcement.priority}
+                            </span>
+                        </div>
+                        
+                        <div style="
+                            background: #f8f9fa;
+                            padding: 20px;
+                            border-radius: 10px;
+                            margin: 20px 0;
+                            line-height: 1.6;
+                            color: #333;
+                        ">
+                            ${announcement.content.replace(/\n/g, '<br>')}
+                        </div>
+                        
+                        ${announcement.external_link ? `
+                            <div style="margin: 20px 0;">
+                                <a href="${announcement.external_link}" target="_blank" style="
+                                    display: inline-block;
+                                    background: #667eea;
+                                    color: white;
+                                    padding: 10px 20px;
+                                    border-radius: 8px;
+                                    text-decoration: none;
+                                ">
+                                    <i class='bx bx-link-external'></i> View Link
+                                </a>
+                            </div>
+                        ` : ''}
+                        
+                        <div style="border-top: 1px solid #ddd; padding-top: 15px; margin-top: 20px;">
+                            <p style="color: #888; font-size: 12px; margin: 0;">
+                                <i class='bx bx-time'></i> Valid until: ${formatDateTime(announcement.display_until)}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+        
+        function closeAnnouncementModal(event) {
+            const modal = document.getElementById('announcementModal');
+            if (modal && (!event || event.target === modal)) {
+                modal.remove();
+                // Reload announcements to update read status
+                loadStudentAnnouncements();
+            }
+        }
+        
+        function markAnnouncementAsRead(announcementId) {
+            const formData = new FormData();
+            formData.append('action', 'mark_announcement_read');
+            formData.append('announcement_id', announcementId);
+            formData.append('user_id', '<?php echo $_SESSION['uid']; ?>');
+            formData.append('user_type', 'student');
+            
+            fetch('../assets/manageAnnouncements.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .catch(error => console.error('Error marking as read:', error));
         }
     </script>
 

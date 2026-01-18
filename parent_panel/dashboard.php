@@ -144,110 +144,209 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    loadDashboardData();
+    loadDashboardStats();
+    loadChildren();
+    loadAnnouncements();
+    loadPendingAssignments();
 });
 
-function loadDashboardData() {
-    // Load children list
-    fetch('../assets/manageParentPortal.php', {
+function loadDashboardStats() {
+    fetch('../assets/parentPortalHandler.php', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({action: 'get_children'})
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=get_dashboard_stats'
     })
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            document.getElementById('childrenCount').textContent = data.children.length;
+            document.getElementById('childrenCount').textContent = data.data.children_count || 0;
+            document.getElementById('unreadMessages').textContent = data.data.unread_messages || 0;
+            document.getElementById('newAnnouncements').textContent = data.data.new_notifications || 0;
+            document.getElementById('upcomingEvents').textContent = data.data.upcoming_events || 0;
+        }
+    })
+    .catch(error => console.error('Error loading stats:', error));
+}
+
+function loadChildren() {
+    fetch('../assets/parentPortalHandler.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=get_children'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' && data.children.length > 0) {
             displayChildren(data.children);
+        } else {
+            document.getElementById('childrenList').innerHTML = '<tr><td colspan="5" class="text-center text-muted">No children found</td></tr>';
         }
-    });
-
-    // Load unread messages count
-    fetch('../assets/manageParentMessages.php', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({action: 'get_unread_count'})
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            document.getElementById('unreadMessages').textContent = data.count;
-        }
+    .catch(error => {
+        console.error('Error loading children:', error);
+        document.getElementById('childrenList').innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading children</td></tr>';
     });
-
-    // Load notifications
-    fetch('../assets/manageParentNotifications.php', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({action: 'get_notifications', limit: 5})
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            displayNotifications(data.notifications);
-            document.getElementById('notification-count').textContent = data.unread_count || 0;
-        }
-    });
-
-    // Load pending assignments
-    loadPendingAssignments();
-
-    // Load upcoming events
-    loadUpcomingEvents();
 }
 
 function displayChildren(children) {
     const tbody = document.getElementById('childrenList');
-    if (children.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No children found</td></tr>';
-        return;
-    }
     
-    tbody.innerHTML = children.map(child => `
-        <tr>
-            <td>
-                <img src="../studentUploads/${child.profile_picture || 'default.jpg'}" width="30" class="rounded-circle">
-                ${child.name}
-            </td>
-            <td>Class ${child.class} ${child.section || ''}</td>
-            <td><span class="badge bg-${child.attendance >= 75 ? 'success' : 'danger'}">${child.attendance}%</span></td>
-            <td>${child.latest_grade || 'N/A'}</td>
-            <td>
-                <a href="student_details.php?id=${child.student_id}" class="btn btn-sm btn-primary">View</a>
-            </td>
-        </tr>
-    `).join('');
+    let html = '';
+    children.forEach((child, index) => {
+        if (index < 5) { // Show only first 5 on dashboard
+            const attendanceClass = child.attendance_percentage >= 75 ? 'success' : (child.attendance_percentage >= 50 ? 'warning' : 'danger');
+            
+            html += `
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="../studentUploads/${child.profile_picture || 'default.jpg'}" 
+                                 width="35" height="35" class="rounded-circle me-2" 
+                                 onerror="this.src='../images/default-avatar.png'">
+                            <span>${child.name}</span>
+                        </div>
+                    </td>
+                    <td>Class ${child.class}${child.section ? ' - ' + child.section : ''}</td>
+                    <td><span class="badge bg-${attendanceClass}">${child.attendance_percentage}%</span></td>
+                    <td><span class="badge bg-info">View Grades</span></td>
+                    <td>
+                        <a href="children.php?student_id=${child.id}" class="btn btn-sm btn-primary">
+                            <i class='bx bx-show'></i> View
+                        </a>
+                    </td>
+                </tr>
+            `;
+        }
+    });
+    
+    tbody.innerHTML = html;
 }
 
-function displayNotifications(notifications) {
+function loadAnnouncements() {
+    fetch('../assets/parentPortalHandler.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=get_parent_announcements'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' && data.announcements.length > 0) {
+            displayNotifications(data.announcements.slice(0, 5));
+        } else {
+            document.getElementById('notificationsList').innerHTML = `
+                <li class="completed">
+                    <div class="task-title">
+                        <i class='bx bx-check-circle'></i>
+                        <p>No new announcements</p>
+                    </div>
+                </li>`;
+        }
+    })
+    .catch(error => console.error('Error loading announcements:', error));
+}
+
+function displayNotifications(announcements) {
     const list = document.getElementById('notificationsList');
-    if (notifications.length === 0) {
-        list.innerHTML = '<li class="completed"><div class="task-title"><i class="bx bx-check-circle"></i><p>No new notifications</p></div></li>';
-        return;
-    }
     
-    list.innerHTML = notifications.map(notif => `
-        <li class="${notif.is_read ? 'completed' : 'not-completed'}">
-            <div class="task-title">
-                <i class='bx ${getNotificationIcon(notif.notification_type)}'></i>
-                <p>${notif.title}</p>
-            </div>
-            <small>${notif.time_ago}</small>
-        </li>
-    `).join('');
+    let html = '';
+    announcements.forEach(announcement => {
+        const timeAgo = getTimeAgo(announcement.created_at);
+        const icon = getAnnouncementIcon(announcement.priority);
+        
+        html += `
+            <li class="not-completed">
+                <div class="task-title">
+                    <i class='bx ${icon}'></i>
+                    <p>${announcement.title}</p>
+                </div>
+                <small class="text-muted">${timeAgo}</small>
+            </li>
+        `;
+    });
+    
+    list.innerHTML = html;
 }
 
 function loadPendingAssignments() {
-    // Implementation for loading assignments
-    const tbody = document.getElementById('assignmentsList');
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No pending assignments</td></tr>';
+    // Get all children first
+    fetch('../assets/parentPortalHandler.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=get_children'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' && data.children.length > 0) {
+            // Load assignments for first child (or all children)
+            const child = data.children[0];
+            return fetch('../assets/parentPortalHandler.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `action=get_student_assignments&student_id=${child.id}`
+            });
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' && data.assignments.length > 0) {
+            displayPendingAssignments(data.assignments.filter(a => !a.submission_status || a.submission_status === 'pending').slice(0, 5));
+        } else {
+            document.getElementById('assignmentsList').innerHTML = '<tr><td colspan="5" class="text-center text-muted">No pending assignments</td></tr>';
+        }
+    })
+    .catch(error => {
+        console.error('Error loading assignments:', error);
+        document.getElementById('assignmentsList').innerHTML = '<tr><td colspan="5" class="text-center text-muted">No pending assignments</td></tr>';
+    });
 }
 
-function loadUpcomingEvents() {
-    // Implementation for loading events
-    const list = document.getElementById('eventsList');
-    list.innerHTML = '<li class="completed"><div class="task-title"><i class="bx bx-calendar"></i><p>No upcoming events</p></div></li>';
+function displayPendingAssignments(assignments) {
+    const tbody = document.getElementById('assignmentsList');
+    
+    let html = '';
+    assignments.forEach(assignment => {
+        const statusClass = assignment.is_overdue ? 'danger' : (assignment.is_upcoming ? 'warning' : 'info');
+        const statusText = assignment.is_overdue ? 'Overdue' : (assignment.is_upcoming ? 'Due Soon' : 'Pending');
+        
+        html += `
+            <tr>
+                <td>Child Name</td>
+                <td>${assignment.title}</td>
+                <td>${assignment.subject}</td>
+                <td>${formatDate(assignment.due_date)}</td>
+                <td><span class="badge bg-${statusClass}">${statusText}</span></td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html || '<tr><td colspan="5" class="text-center text-muted">No pending assignments</td></tr>';
 }
+
+function getAnnouncementIcon(priority) {
+    switch(priority) {
+        case 'high': return 'bx-error-circle text-danger';
+        case 'medium': return 'bx-info-circle text-warning';
+        default: return 'bx-info-circle text-info';
+    }
+}
+
+function getTimeAgo(datetime) {
+    const date = new Date(datetime);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return Math.floor(seconds / 60) + ' min ago';
+    if (seconds < 86400) return Math.floor(seconds / 3600) + ' hours ago';
+    if (seconds < 604800) return Math.floor(seconds / 86400) + ' days ago';
+    return date.toLocaleDateString();
+}
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+</script>
 
 function getNotificationIcon(type) {
     const icons = {

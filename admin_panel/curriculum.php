@@ -96,7 +96,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addCurriculumForm">
+                <form id="addCurriculumForm" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="curriculumName" class="form-label">Curriculum Name *</label>
@@ -139,6 +139,12 @@
                     <div class="mb-3">
                         <label for="curriculumDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="curriculumDescription" name="description" rows="3" placeholder="Brief description of the curriculum..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="curriculumFile" class="form-label">Upload Curriculum PDF (Optional)</label>
+                        <input type="file" class="form-control" id="curriculumFile" name="curriculum_file" accept=".pdf,.doc,.docx">
+                        <small class="text-muted">Students can download this file from their dashboard</small>
                     </div>
                     
                     <h6 class="mt-4 mb-3">Add Subjects</h6>
@@ -299,12 +305,24 @@
 <script>
 // Add/Remove subject fields
 let subjectCount = 1;
-document.getElementById('addSubjectBtn').addEventListener('click', function() {
-    subjectCount++;
-    const container = document.getElementById('subjectsContainer');
-    const newRow = document.createElement('div');
-    newRow.className = 'subject-row mb-2';
-    newRow.innerHTML = `
+
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Curriculum page loaded');
+    
+    // Check if button exists
+    const saveBtn = document.getElementById('saveCurriculumBtn');
+    console.log('Save button found:', saveBtn !== null);
+    
+    // Add subject button
+    const addSubjectBtn = document.getElementById('addSubjectBtn');
+    if (addSubjectBtn) {
+        addSubjectBtn.addEventListener('click', function() {
+            subjectCount++;
+            const container = document.getElementById('subjectsContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'subject-row mb-2';
+            newRow.innerHTML = `
         <div class="row">
             <div class="col-md-4">
                 <select class="form-select" name="subject_code[]" required>
@@ -332,7 +350,8 @@ document.getElementById('addSubjectBtn').addEventListener('click', function() {
     
     // Update remove buttons visibility
     updateRemoveButtons();
-});
+        });
+    }
 
 // Remove subject field
 document.addEventListener('click', function(e) {
@@ -350,57 +369,66 @@ function updateRemoveButtons() {
     });
 }
 
-// Save curriculum
-document.getElementById('saveCurriculumBtn').addEventListener('click', function() {
-    const form = document.getElementById('addCurriculumForm');
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-    
-    const formData = new FormData(form);
-    formData.append('action', 'add_curriculum');
-    
-    this.disabled = true;
-    this.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Saving...';
-    
-    fetch('../assets/addCurriculum.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        console.log('Response status:', response.status);
-        return response.text(); // Get as text first
-    })
-    .then(text => {
-        console.log('Response text:', text);
-        try {
-            const data = JSON.parse(text);
-            if (data.status === 'success') {
-                alert(data.message);
-                bootstrap.Modal.getInstance(document.getElementById('addCurriculumModal')).hide();
-                form.reset();
-                subjectCount = 1;
-                loadCurriculum();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        } catch (e) {
-            console.error('JSON parse error:', e);
-            console.error('Response was:', text);
-            alert('Server error: ' + text.substring(0, 200));
+// Save curriculum - attached to button on DOMContentLoaded
+const saveCurriculumBtn = document.getElementById('saveCurriculumBtn');
+if (saveCurriculumBtn) {
+    saveCurriculumBtn.addEventListener('click', function() {
+        console.log('Save button clicked');
+        
+        const form = document.getElementById('addCurriculumForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
         }
-    })
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred. Please try again.');
-    })
-    .finally(() => {
-        this.disabled = false;
-        this.innerHTML = '<i class="bx bx-save"></i> Save Curriculum';
+        
+        const formData = new FormData(form);
+        formData.append('action', 'add_curriculum');
+        
+        console.log('Form data prepared');
+        
+        const saveBtn = this;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Saving...';
+        
+        fetch('../assets/addCurriculum.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.text();
+        })
+        .then(text => {
+            console.log('Response text:', text);
+            try {
+                const data = JSON.parse(text);
+                if (data.status === 'success') {
+                    alert(data.message);
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addCurriculumModal'));
+                    if (modal) modal.hide();
+                    form.reset();
+                    loadCurriculum();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (e) {
+                console.error('JSON parse error:', e);
+                console.error('Response was:', text);
+                alert('Server error: ' + text.substring(0, 200));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        })
+        .finally(() => {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="bx bx-save"></i> Save Curriculum';
+        });
     });
-});
+} else {
+    console.error('Save curriculum button not found!');
+}
 
 // Load curriculum list
 function loadCurriculum() {
@@ -424,13 +452,17 @@ function displayCurriculum(curriculums) {
     
     tbody.innerHTML = curriculums.map(curr => `
         <tr>
-            <td>Class ${curr.class}</td>
+            <td>
+                Class ${curr.class}
+                ${curr.file_path ? '<br><small class="text-success"><i class="bx bx-file-blank"></i> File attached</small>' : ''}
+            </td>
             <td>${curr.academic_year}</td>
             <td>${curr.department_code || 'General'}</td>
             <td>${curr.total_subjects}</td>
             <td><span class="badge badge-${curr.status === 'active' ? 'success' : 'warning'}">${curr.status}</span></td>
             <td>
                 <button class="btn btn-sm btn-info" onclick="viewCurriculum(${curr.curriculum_id})"><i class='bx bx-show'></i></button>
+                ${curr.file_path ? `<a href="../curriculumUploads/${curr.file_path}" class="btn btn-sm btn-success" download><i class='bx bx-download'></i></a>` : ''}
                 <button class="btn btn-sm btn-warning" onclick="editCurriculum(${curr.curriculum_id})"><i class='bx bx-edit'></i></button>
                 <button class="btn btn-sm btn-danger" onclick="deleteCurriculum(${curr.curriculum_id})"><i class='bx bx-trash'></i></button>
             </td>
@@ -446,18 +478,24 @@ function updateStats(curriculums) {
     document.getElementById('activeStatus').textContent = activeCount;
 }
 
-// Load on page load
-document.addEventListener('DOMContentLoaded', loadCurriculum);
+// Load on page load - already inside DOMContentLoaded
+loadCurriculum();
 
 // Search functionality
-document.getElementById('searchCurriculum').addEventListener('keyup', function() {
-    const searchTerm = this.value.toLowerCase();
-    const rows = document.querySelectorAll('#curriculumList tr');
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
+const searchInput = document.getElementById('searchCurriculum');
+if (searchInput) {
+    searchInput.addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#curriculumList tr');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
     });
-});
+}
+
+}); // End of DOMContentLoaded
+
 </script>
 
 <?php include('partials/_footer.php') ?>

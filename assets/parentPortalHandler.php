@@ -70,9 +70,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $children = [];
         
         while ($row = mysqli_fetch_assoc($result)) {
-            // Get latest attendance percentage
+            // Get attendance percentage (last 30 days)
             $attendanceSql = "SELECT 
-                             COUNT(CASE WHEN status = 'present' THEN 1 END) * 100.0 / COUNT(*) as attendance_percentage
+                             COUNT(CASE WHEN attendence = 'present' THEN 1 END) * 100.0 / COUNT(*) as attendance_percentage
                              FROM attendence 
                              WHERE student_id = ? AND date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
             $stmtAtt = mysqli_prepare($conn, $attendanceSql);
@@ -82,10 +82,179 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $attData = mysqli_fetch_assoc($attResult);
             $row['attendance_percentage'] = round($attData['attendance_percentage'] ?? 0, 1);
             
+            // Build full name
+            $row['name'] = trim($row['fname'] . ' ' . $row['lname']);
+            
             $children[] = $row;
         }
         
-        echo json_encode(['status' => 'success', 'data' => $children]);
+        echo json_encode(['status' => 'success', 'children' => $children]);
+    }
+    
+    // Get student grades/marks
+    else if ($action == "get_student_grades") {
+        $studentId = $_POST["student_id"];
+        $guardianId = $_SESSION['parent_id'];
+        
+        // Verify parent has access to this student
+        $verifySql = "SELECT COUNT(*) as count FROM student_parent_link WHERE student_id = ? AND guardian_id = ?";
+        $stmt = mysqli_prepare($conn, $verifySql);
+        mysqli_stmt_bind_param($stmt, "ss", $studentId, $guardianId);
+        mysqli_stmt_execute($stmt);
+        $verifyResult = mysqli_stmt_get_result($stmt);
+        if (mysqli_fetch_assoc($verifyResult)['count'] == 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Unauthorized access']);
+            exit();
+        }
+        
+        // Get all exam marks for the student
+        $sql = "SELECT e.exam_name, e.subject, e.total_marks, e.passing_marks, 
+                       m.marks_obtained, m.remarks, m.exam_date, e.class, e.section
+                FROM exams e
+                LEFT JOIN marks m ON e.exam_id = m.exam_id AND m.student_id = ?
+                WHERE e.class = (SELECT class FROM students WHERE id = ?)
+                  AND e.section = (SELECT section FROM students WHERE id = ?)
+                ORDER BY m.exam_date DESC, e.subject";
+        
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "sss", $studentId, $studentId, $studentId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $grades = [];
+        
+        while ($row = mysqli_fetch_assoc($result)) {
+            $row['percentage'] = $row['marks_obtained'] ? round(($row['marks_obtained'] / $row['total_marks']) * 100, 1) : 0;
+            $row['status'] = $row['marks_obtained'] >= $row['passing_marks'] ? 'Pass' : 'Fail';
+            $grades[] = $row;
+        }
+        
+        echo json_encode(['status' => 'success', 'grades' => $grades]);
+    }
+    
+    // Get student assignments
+    else if ($action == "get_student_assignments") {
+        $studentId = $_POST["student_id"] ?? null;
+        $studentClass = $_POST["class"] ?? null;
+        $section = $_POST["section"] ?? null;
+        $guardianId = $_SESSION['parent_id'];
+        
+        if ($studentId) {
+            // Verify parent has access
+            $verifySql = "SELECT COUNT(*) as count FROM student_parent_link WHERE student_id = ? AND guardian_id = ?";
+            $stmt = mysqli_prepare($conn, $verifySql);
+            mysqli_stmt_bind_param($stmt, "ss", $studentId, $guardianId);
+            mysqli_stmt_execute($stmt);
+            $verifyResult = mysqli_stmt_get_result($stmt);
+            if (mysqli_fetch_assoc($verifyResult)['count'] == 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+                exit();
+            }
+            
+            // Get class and section from student
+            $classSql = "SELECT class, section FROM students WHERE id = ?";
+            $stmt = mysqli_prepare($conn, $classSql);
+            mysqli_stmt_bind_param($stmt, "s", $studentId);
+            mysqli_stmt_execute($stmt);
+            $classResult = mysqli_stmt_get_result($stmt);
+            $classData = mysqli_fetch_assoc($classResult);
+            $studentClass = $classData['class'];
+            $section = $classData['section'];
+        }
+        
+        // Get assignments for student's class
+        $sql = "SELECT a.*, 
+                       asub.submission_date, asub.status as submission_status, asub.marks_obtained, asub.feedback,
+                       DATEDIFF(a.due_date, CURDATE()) as days_remaining
+                FROM assignments a
+                LEFT JOIN assignment_submissions asub ON a.assignment_id = asub.assignment_id AND asub.student_id = ?
+                WHERE a.class = ? AND a.section = ?
+                ORDER BY a.due_date DESC";
+        
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "sss", $studentId, $studentClass, $section);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $assignments = [];
+        
+        while ($row = mysqli_fetch_assoc($result)) {
+            $row['is_overdue'] = $row['days_remaining'] < 0 && !$row['submission_status'];
+            $row['is_upcoming'] = $row['days_remaining'] > 0 && $row['days_remaining'] <= 3;
+            $assignments[] = $row;
+        }
+        
+        echo json_encode(['status' => 'success', 'assignments' => $assignments]);
+    }
+    
+    // Get announcements for parent
+    else if ($action == "get_parent_announcements") {
+        $guardianId = $_SESSION['parent_id'];
+        
+        // Get children's classes for filtering
+        $childrenSql = "SELECT DISTINCT s.class, s.section 
+                        FROM students s
+                        JOIN student_parent_link spl ON s.id = spl.student_id
+                        WHERE spl.guardian_id = ?";
+        $stmt = mysqli_prepare($conn, $childrenSql);
+        mysqli_stmt_bind_param($stmt, "s", $guardianId);
+        mysqli_stmt_execute($stmt);
+        $childrenResult = mysqli_stmt_get_result($stmt);
+        
+        $classConditions = [];
+        while ($child = mysqli_fetch_assoc($childrenResult)) {
+            $classConditions[] = "(target_audience LIKE '%{$child['class']}%' OR target_audience = 'all')";
+        }
+        
+        $whereClause = empty($classConditions) ? "target_audience = 'all'" : '(' . implode(' OR ', $classConditions) . ')';
+        
+        $sql = "SELECT * FROM announcements 
+                WHERE status = 'published' AND " . $whereClause . "
+                ORDER BY created_at DESC LIMIT 20";
+        
+        $result = mysqli_query($conn, $sql);
+        $announcements = [];
+        
+        while ($row = mysqli_fetch_assoc($result)) {
+            $announcements[] = $row;
+        }
+        
+        echo json_encode(['status' => 'success', 'announcements' => $announcements]);
+    }
+    
+    // Get recent activity/notifications
+    else if ($action == "get_recent_activity") {
+        $guardianId = $_SESSION['parent_id'];
+        $limit = $_POST["limit"] ?? 5;
+        
+        $activities = [];
+        
+        // Get children
+        $childrenSql = "SELECT s.id, s.fname, s.lname, s.class FROM students s
+                        JOIN student_parent_link spl ON s.id = spl.student_id
+                        WHERE spl.guardian_id = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "s", $guardianId);
+        mysqli_stmt_execute($stmt);
+        $childrenResult = mysqli_stmt_get_result($stmt);
+        $children = [];
+        while ($child = mysqli_fetch_assoc($childrenResult)) {
+            $children[] = $child;
+        }
+        
+        foreach ($children as $child) {
+            // Recent assignments
+            $assignSql = "SELECT title, due_date, 'assignment' as type FROM assignments 
+                          WHERE class = ? ORDER BY created_at DESC LIMIT 2";
+            $stmt = mysqli_prepare($conn, $assignSql);
+            mysqli_stmt_bind_param($stmt, "s", $child['class']);
+            mysqli_stmt_execute($stmt);
+            $assignResult = mysqli_stmt_get_result($stmt);
+            while ($row = mysqli_fetch_assoc($assignResult)) {
+                $row['student_name'] = $child['fname'] . ' ' . $child['lname'];
+                $activities[] = $row;
+            }
+        }
+        
+        echo json_encode(['status' => 'success', 'activities' => array_slice($activities, 0, $limit)]);
     }
     
     // Get unread messages count

@@ -82,11 +82,11 @@ function loadChildren() {
                             
                             <div class="row text-center mt-3">
                                 <div class="col-6 border-end">
-                                    <h5 class="text-success">${child.attendance || '0'}%</h5>
+                                    <h5 class="text-success">${child.attendance_percentage || '0'}%</h5>
                                     <small class="text-muted">Attendance</small>
                                 </div>
                                 <div class="col-6">
-                                    <h5 class="text-primary">${child.latest_grade || 'N/A'}</h5>
+                                    <h5 class="text-primary">View</h5>
                                     <small class="text-muted">Latest Grade</small>
                                 </div>
                             </div>

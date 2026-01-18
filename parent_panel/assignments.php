@@ -102,77 +102,153 @@ function loadAssignments() {
         </div>
     `;
     
-    // Fetch assignments for the class
-    fetch(`../admin_panel/assignments.php?class=${studentClass}&section=${section}&ajax=1`)
-    .then(response => response.text())
-    .then(html => {
-        // Since we're getting HTML, we'll display a list format
-        content.innerHTML = `
-            <div class="alert alert-info">
-                <i class='bx bx-info-circle'></i>
-                Showing assignments for Class ${studentClass} - Section ${section}
-            </div>
-            <div class="row" id="assignmentsList">
-                <p class="text-center">Loading assignment details...</p>
-            </div>
-        `;
-        
-        // Fetch actual assignments data
-        loadAssignmentsList(studentClass, section);
+    // Fetch assignments using parentPortalHandler
+    fetch('../assets/parentPortalHandler.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `action=get_student_assignments&class=${studentClass}&section=${section}&student_id=${select.value}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' && data.assignments && data.assignments.length > 0) {
+            displayAssignments(data.assignments, studentClass, section);
+        } else {
+            content.innerHTML = `
+                <div class="alert alert-info text-center">
+                    <i class='bx bx-file' style='font-size: 60px;'></i>
+                    <p class="mt-3">No assignments found for Class ${studentClass} - Section ${section}</p>
+                </div>
+            `;
+        }
     })
     .catch(error => {
-        console.error('Error:', error);
-        content.innerHTML = '<p class="text-center text-danger">Error loading assignments</p>';
+        console.error('Error loading assignments:', error);
+        content.innerHTML = '<div class="alert alert-danger">Error loading assignments. Please try again.</div>';
     });
 }
 
-function loadAssignmentsList(className, section) {
-    // Create a sample assignments display (you'll need to create a proper endpoint)
-    const list = document.getElementById('assignmentsList');
+function displayAssignments(assignments, className, section) {
+    const content = document.getElementById('assignmentsContent');
     
-    const sampleAssignments = [
-        {
-            subject: 'Mathematics',
-            title: 'Chapter 5 Exercises',
-            due_date: '2026-01-10',
-            status: 'Pending'
-        },
-        {
-            subject: 'Science',
-            title: 'Lab Report - Experiment 3',
-            due_date: '2026-01-08',
-            status: 'Pending'
-        },
-        {
-            subject: 'English',
-            title: 'Essay Writing',
-            due_date: '2026-01-15',
-            status: 'Upcoming'
-        }
-    ];
+    // Separate assignments by status
+    const pending = assignments.filter(a => !a.submission_status && a.days_remaining >= 0);
+    const overdue = assignments.filter(a => a.is_overdue && !a.submission_status);
+    const submitted = assignments.filter(a => a.submission_status);
     
-    let html = '';
-    sampleAssignments.forEach(assignment => {
-        const statusColor = assignment.status === 'Pending' ? 'warning' : 'info';
+    let html = `
+        <div class="alert alert-info mb-3">
+            <i class='bx bx-info-circle'></i>
+            Showing assignments for Class ${className} - Section ${section}
+        </div>
+    `;
+    
+    // Overdue Assignments
+    if (overdue.length > 0) {
         html += `
-            <div class="col-md-6 mb-3">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h5 class="card-title">${assignment.subject}</h5>
-                            <span class="badge bg-${statusColor}">${assignment.status}</span>
-                        </div>
-                        <p class="card-text">${assignment.title}</p>
-                        <small class="text-muted">
-                            <i class='bx bx-calendar'></i> Due: ${assignment.due_date}
-                        </small>
-                    </div>
-                </div>
+            <div class="mb-4">
+                <h5 class="text-danger"><i class='bx bx-error-circle'></i> Overdue Assignments (${overdue.length})</h5>
+                <div class="row">
+        `;
+        
+        overdue.forEach(assignment => {
+            html += createAssignmentCard(assignment, 'danger');
+        });
+        
+        html += '</div></div>';
+    }
+    
+    // Pending Assignments
+    if (pending.length > 0) {
+        html += `
+            <div class="mb-4">
+                <h5 class="text-warning"><i class='bx bx-time'></i> Pending Assignments (${pending.length})</h5>
+                <div class="row">
+        `;
+        
+        pending.forEach(assignment => {
+            const badgeClass = assignment.is_upcoming ? 'warning' : 'info';
+            html += createAssignmentCard(assignment, badgeClass);
+        });
+        
+        html += '</div></div>';
+    }
+    
+    // Submitted Assignments
+    if (submitted.length > 0) {
+        html += `
+            <div class="mb-4">
+                <h5 class="text-success"><i class='bx bx-check-circle'></i> Submitted Assignments (${submitted.length})</h5>
+                <div class="row">
+        `;
+        
+        submitted.forEach(assignment => {
+            html += createAssignmentCard(assignment, 'success');
+        });
+        
+        html += '</div></div>';
+    }
+    
+    if (pending.length === 0 && overdue.length === 0 && submitted.length === 0) {
+        html += `
+            <div class="alert alert-info text-center">
+                <i class='bx bx-file' style='font-size: 60px;'></i>
+                <p class="mt-3">No assignments found</p>
             </div>
         `;
-    });
+    }
     
-    list.innerHTML = html || '<p class="text-center text-muted col-12">No assignments available</p>';
+    content.innerHTML = html;
+}
+
+function createAssignmentCard(assignment, badgeClass) {
+    const daysText = assignment.days_remaining > 0 
+        ? `${assignment.days_remaining} days remaining` 
+        : (assignment.days_remaining === 0 ? 'Due today' : `${Math.abs(assignment.days_remaining)} days overdue`);
+    
+    const statusText = assignment.submission_status 
+        ? `Submitted on ${formatDate(assignment.submission_date)}` 
+        : (assignment.is_overdue ? 'Overdue' : 'Pending');
+    
+    return `
+        <div class="col-md-6 col-lg-4 mb-3">
+            <div class="card h-100">
+                <div class="card-header bg-${badgeClass} text-white">
+                    <h6 class="mb-0">${assignment.subject}</h6>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">${assignment.title}</h5>
+                    <p class="card-text text-muted">${assignment.description || 'No description provided'}</p>
+                    
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            <i class='bx bx-calendar'></i> Due: ${formatDate(assignment.due_date)}
+                        </small>
+                        <br>
+                        <small class="text-muted">
+                            <i class='bx bx-time'></i> ${daysText}
+                        </small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <span class="badge bg-${badgeClass}">${statusText}</span>
+                        ${assignment.marks_obtained ? `<span class="badge bg-primary">Score: ${assignment.marks_obtained}/${assignment.max_marks || 100}</span>` : ''}
+                    </div>
+                    
+                    ${assignment.feedback ? `
+                        <div class="alert alert-info mt-2 mb-0">
+                            <small><strong>Feedback:</strong> ${assignment.feedback}</small>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 </script>
 

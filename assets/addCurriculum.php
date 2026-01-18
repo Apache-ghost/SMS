@@ -19,16 +19,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $subjectCodes = $_POST['subject_code'] ?? [];
         $hoursPerWeek = $_POST['hours_per_week'] ?? [];
         
+        // Handle file upload
+        $fileName = null;
+        if (isset($_FILES['curriculum_file']) && $_FILES['curriculum_file']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = '../curriculumUploads/';
+            $fileExtension = pathinfo($_FILES['curriculum_file']['name'], PATHINFO_EXTENSION);
+            $fileName = 'curriculum_' . time() . '_' . uniqid() . '.' . $fileExtension;
+            $uploadPath = $uploadDir . $fileName;
+            
+            if (!move_uploaded_file($_FILES['curriculum_file']['tmp_name'], $uploadPath)) {
+                throw new Exception('Failed to upload curriculum file');
+            }
+        }
+        
         // Begin transaction
         mysqli_begin_transaction($conn);
         
         // Insert curriculum into curriculum_master table
-        $sql = "INSERT INTO curriculum_master (curriculum_name, academic_year, class, department_code, total_credits, status, created_at) 
-                VALUES (?, ?, ?, ?, ?, 'active', NOW())";
+        $sql = "INSERT INTO curriculum_master (curriculum_name, academic_year, class, department_code, total_credits, status, file_path, created_at) 
+                VALUES (?, ?, ?, ?, ?, 'active', ?, NOW())";
         $stmt = mysqli_prepare($conn, $sql);
         $classNum = intval($gradeLevel);
         $totalCredits = count($subjectNames);
-        mysqli_stmt_bind_param($stmt, "ssisi", $curriculumName, $academicYear, $classNum, $department, $totalCredits);
+        mysqli_stmt_bind_param($stmt, "ssisss", $curriculumName, $academicYear, $classNum, $department, $totalCredits, $fileName);
         
         if (!mysqli_stmt_execute($stmt)) {
             throw new Exception("Failed to create curriculum");

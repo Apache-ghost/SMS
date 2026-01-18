@@ -1,6 +1,9 @@
 <?php
 // REQ-ACD-007: Announcements and Calendar Management
+session_start();
 include("config.php");
+
+header('Content-Type: application/json');
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $action = $_POST["action"] ?? '';
@@ -12,14 +15,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $announcementType = mysqli_real_escape_string($conn, $_POST["announcement_type"] ?? 'general');
         $priority = mysqli_real_escape_string($conn, $_POST["priority"] ?? 'normal');
         $targetAudience = mysqli_real_escape_string($conn, $_POST["target_audience"]);
-        $class = $_POST["class"] ?? null;
-        $section = mysqli_real_escape_string($conn, $_POST["section"] ?? null);
-        $departmentCode = mysqli_real_escape_string($conn, $_POST["department_code"] ?? null);
+        $class = !empty($_POST["class"]) ? intval($_POST["class"]) : null;
+        $section = !empty($_POST["section"]) ? mysqli_real_escape_string($conn, $_POST["section"]) : null;
+        $departmentCode = !empty($_POST["department_code"]) ? mysqli_real_escape_string($conn, $_POST["department_code"]) : null;
         $displayFrom = mysqli_real_escape_string($conn, $_POST["display_from"]);
         $displayUntil = mysqli_real_escape_string($conn, $_POST["display_until"]);
-        $isPinned = $_POST["is_pinned"] ?? 0;
-        $allowComments = $_POST["allow_comments"] ?? 0;
-        $externalLink = mysqli_real_escape_string($conn, $_POST["external_link"] ?? null);
+        $isPinned = isset($_POST["is_pinned"]) ? 1 : 0;
+        $allowComments = isset($_POST["allow_comments"]) ? 1 : 0;
+        $externalLink = !empty($_POST["external_link"]) ? mysqli_real_escape_string($conn, $_POST["external_link"]) : null;
         $status = mysqli_real_escape_string($conn, $_POST["status"] ?? 'draft');
         $publishedBy = mysqli_real_escape_string($conn, $_POST["published_by"]);
         
@@ -30,7 +33,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
         
         $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "sssssississsss", 
+        
+        if (!$stmt) {
+            echo json_encode(['status' => 'error', 'message' => 'Prepare failed: ' . mysqli_error($conn)]);
+            exit();
+        }
+        
+        mysqli_stmt_bind_param($stmt, "ssssssssssiisss", 
             $title, $content, $announcementType, $priority, $targetAudience, $class, $section,
             $departmentCode, $displayFrom, $displayUntil, $isPinned, $allowComments,
             $externalLink, $status, $publishedBy);
@@ -49,8 +58,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 'announcement_id' => $announcementId
             ]);
         } else {
-            echo json_encode(['status' => 'error', 'message' => mysqli_error($conn)]);
+            echo json_encode(['status' => 'error', 'message' => 'Execute failed: ' . mysqli_stmt_error($stmt)]);
         }
+        mysqli_stmt_close($stmt);
     }
     
     // Update announcement
@@ -158,6 +168,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         echo json_encode(['status' => 'success', 'data' => $announcements]);
     }
     
+    // Get single announcement details
+    else if ($action == "get_announcement_details") {
+        $announcementId = mysqli_real_escape_string($conn, $_POST["announcement_id"]);
+        
+        $sql = "SELECT a.*, 
+                       CASE 
+                         WHEN a.published_by IN (SELECT id FROM teachers) 
+                         THEN (SELECT CONCAT(fname, ' ', lname) FROM teachers WHERE id = a.published_by)
+                         WHEN a.published_by IN (SELECT id FROM admins) 
+                         THEN (SELECT CONCAT(fname, ' ', lname) FROM admins WHERE id = a.published_by)
+                         ELSE 'Admin'
+                       END as publisher_name
+                FROM announcements a 
+                WHERE a.announcement_id = ?";
+        
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "i", $announcementId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if ($row = mysqli_fetch_assoc($result)) {
+            echo json_encode(['status' => 'success', 'data' => $row]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Announcement not found']);
+        }
+    }
+    
     // Mark announcement as read
     else if ($action == "mark_announcement_read") {
         $announcementId = mysqli_real_escape_string($conn, $_POST["announcement_id"]);
@@ -217,6 +254,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 'message' => 'Comment added!',
                 'comment_id' => mysqli_insert_id($conn)
             ]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => mysqli_error($conn)]);
+        }
+    }
+    
+    // Delete announcement
+    else if ($action == "delete_announcement") {
+        $announcementId = mysqli_real_escape_string($conn, $_POST["announcement_id"]);
+        
+        $sql = "DELETE FROM announcements WHERE announcement_id = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "i", $announcementId);
+        
+        if (mysqli_stmt_execute($stmt)) {
+            echo json_encode(['status' => 'success', 'message' => 'Announcement deleted!']);
         } else {
             echo json_encode(['status' => 'error', 'message' => mysqli_error($conn)]);
         }
