@@ -85,12 +85,10 @@ function loadChildren() {
 
 function loadAssignments() {
     const select = document.getElementById('childSelect');
-    const selectedOption = select.options[select.selectedIndex];
-    const studentClass = selectedOption.getAttribute('data-class');
-    const section = selectedOption.getAttribute('data-section');
+    const studentId = select.value;
     const content = document.getElementById('assignmentsContent');
     
-    if (!studentClass) {
+    if (!studentId) {
         content.innerHTML = '<p class="text-center text-muted">Select a child to view assignments</p>';
         return;
     }
@@ -98,6 +96,83 @@ function loadAssignments() {
     content.innerHTML = `
         <div class="text-center">
             <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Loading assignments...</p>
+        </div>
+    `;
+    
+    fetch('../assets/parentPortalHandler.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `action=get_student_assignments&student_id=${studentId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Assignments data:', data);
+        if (data.status === 'success' && data.assignments && data.assignments.length > 0) {
+            displayAssignments(data.assignments);
+        } else {
+            content.innerHTML = `
+                <div class="alert alert-info text-center">
+                    <i class='bx bx-file' style='font-size: 60px;'></i>
+                    <p class="mt-3">No assignments found</p>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading assignments:', error);
+        content.innerHTML = `
+            <div class="alert alert-danger">
+                <i class='bx bx-error'></i> Error loading assignments. Please try again.
+            </div>
+        `;
+    });
+}
+
+function displayAssignments(assignments) {
+    const content = document.getElementById('assignmentsContent');
+    
+    let html = '<div class="row">';
+    
+    assignments.forEach(assignment => {
+        const dueDate = new Date(assignment.due_date);
+        const now = new Date();
+        const isPast = dueDate < now;
+        const statusColor = assignment.submission_status === 'submitted' ? '#10b981' : 
+                           (isPast ? '#ef4444' : '#f59e0b');
+        const statusText = assignment.submission_status === 'submitted' ? 'Submitted' : 
+                          (isPast ? 'Overdue' : 'Pending');
+        
+        html += `
+            <div class="col-md-6 mb-3">
+                <div class="card shadow-sm" style="border-left: 4px solid ${statusColor};">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">${assignment.title}</h5>
+                            <span class="badge" style="background: ${statusColor}; color: white;">${statusText}</span>
+                        </div>
+                        <p class="text-muted mb-2"><strong>Subject:</strong> ${assignment.subject || 'General'}</p>
+                        <p class="text-muted mb-2"><strong>Type:</strong> ${assignment.assignment_type || 'Homework'}</p>
+                        <p class="text-muted mb-2"><strong>Due Date:</strong> ${formatDate(assignment.due_date)}</p>
+                        ${assignment.description ? `<p class="mb-2">${assignment.description.substring(0, 100)}${assignment.description.length > 100 ? '...' : ''}</p>` : ''}
+                        ${assignment.max_marks ? `<p class="mb-2"><strong>Max Marks:</strong> ${assignment.max_marks}</p>` : ''}
+                        ${assignment.submission_status === 'submitted' && assignment.marks_obtained ? 
+                          `<p class="mb-0"><strong>Score:</strong> <span style="color: #10b981;">${assignment.marks_obtained}/${assignment.max_marks}</span></p>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    content.innerHTML = html;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
             <p class="mt-2">Loading assignments...</p>
         </div>
     `;

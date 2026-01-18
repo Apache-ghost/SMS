@@ -118,6 +118,116 @@ function loadGrades() {
     fetch('../assets/parentPortalHandler.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `action=get_student_grades_detailed&student_id=${studentId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Grades data:', data);
+        if (data.status === 'success' && data.grades && data.grades.length > 0) {
+            displayGrades(data.grades);
+        } else {
+            content.innerHTML = `
+                <div class="alert alert-info text-center">
+                    <i class='bx bx-book' style='font-size: 60px;'></i>
+                    <p class="mt-3">No grades available yet</p>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading grades:', error);
+        content.innerHTML = `
+            <div class="alert alert-danger">
+                <i class='bx bx-error'></i> Error loading grades. Please try again.
+            </div>
+        `;
+    });
+}
+
+function displayGrades(grades) {
+    const content = document.getElementById('gradesContent');
+    
+    // Group by exam/subject
+    let html = '<div class="table-responsive"><table class="table table-striped">';
+    html += `
+        <thead>
+            <tr style="background: #667eea; color: white;">
+                <th>Exam</th>
+                <th>Subject</th>
+                <th>Marks Obtained</th>
+                <th>Total Marks</th>
+                <th>Percentage</th>
+                <th>Status</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    grades.forEach(grade => {
+        const statusColor = grade.status === 'Pass' ? '#10b981' : '#ef4444';
+        const percentageColor = grade.percentage >= 75 ? '#10b981' : grade.percentage >= 50 ? '#f59e0b' : '#ef4444';
+        
+        html += `
+            <tr>
+                <td><strong>${grade.exam_name || 'N/A'}</strong></td>
+                <td>${grade.subject_display || grade.subject || 'N/A'}</td>
+                <td>${grade.marks_obtained || '0'}</td>
+                <td>${grade.total_marks || '0'}</td>
+                <td><span style="background: ${percentageColor}; color: white; padding: 5px 10px; border-radius: 12px;">${grade.percentage}%</span></td>
+                <td><span style="background: ${statusColor}; color: white; padding: 5px 10px; border-radius: 12px;">${grade.status}</span></td>
+                <td>${formatDate(grade.exam_date)}</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    
+    // Add summary
+    const totalPercentage = grades.reduce((sum, g) => sum + parseFloat(g.percentage), 0) / grades.length;
+    html += `
+        <div class="alert alert-info mt-3">
+            <h5>Overall Performance</h5>
+            <p><strong>Average:</strong> ${totalPercentage.toFixed(2)}%</p>
+            <p><strong>Total Exams:</strong> ${grades.length}</p>
+        </div>
+    `;
+    
+    content.innerHTML = html;
+}
+
+function downloadReport() {
+    const studentId = document.getElementById('childSelect').value;
+    if (!studentId) {
+        alert('Please select a child first');
+        return;
+    }
+    window.location.href = `../assets/downloadReport.php?student_id=${studentId}&type=grades`;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+    const studentId = document.getElementById('childSelect').value;
+    const content = document.getElementById('gradesContent');
+    
+    if (!studentId) {
+        content.innerHTML = '<p class="text-center text-muted">Select a child to view grades</p>';
+        return;
+    }
+    
+    content.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Loading grades...</p>
+        </div>
+    `;
+    
+    fetch('../assets/parentPortalHandler.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `action=get_student_grades&student_id=${studentId}`
     })
     .then(response => response.json())

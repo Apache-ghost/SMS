@@ -161,24 +161,65 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $section = $classData['section'];
         }
         
-        // Get assignments for student's class
-        $sql = "SELECT a.*, 
-                       asub.submission_date, asub.status as submission_status, asub.marks_obtained, asub.feedback,
-                       DATEDIFF(a.due_date, CURDATE()) as days_remaining
-                FROM assignments a
-                LEFT JOIN assignment_submissions asub ON a.assignment_id = asub.assignment_id AND asub.student_id = ?
-                WHERE a.class = ? AND a.section = ?
-                ORDER BY a.due_date DESC";
+        if (!$studentClass) {
+            echo json_encode(['status' => 'error', 'message' => 'Student class not found']);
+            exit();
+        }
         
-        $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "sss", $studentId, $studentClass, $section);
+        // Check if assignment_submissions table exists
+        $checkSubmissions = mysqli_query($conn, "SHOW TABLES LIKE 'assignment_submissions'");
+        $hasSubmissionsTable = mysqli_num_rows($checkSubmissions) > 0;
+        
+        // Check if assignments table exists
+        $checkAssignments = mysqli_query($conn, "SHOW TABLES LIKE 'assignments'");
+        if (mysqli_num_rows($checkAssignments) == 0) {
+            echo json_encode(['status' => 'success', 'assignments' => []]);
+            exit();
+        }
+        
+        // Build query based on available tables
+        if ($hasSubmissionsTable) {
+            $sql = "SELECT a.*, 
+                           asub.submission_date, asub.status as submission_status, 
+                           asub.marks_obtained, asub.feedback,
+                           DATEDIFF(a.due_date, CURDATE()) as days_remaining,
+                           s.subject_name as subject
+                    FROM assignments a
+                    LEFT JOIN assignment_submissions asub ON a.assignment_id = asub.assignment_id AND asub.student_id = ?
+                    LEFT JOIN subjects s ON a.course_code = s.subject_id
+                    WHERE a.class = ? AND (a.section = ? OR a.section IS NULL OR a.section = '')
+                    AND a.status = 'published'
+                    ORDER BY a.due_date DESC";
+            
+            $stmt = mysqli_prepare($conn, $sql);
+            mysqli_stmt_bind_param($stmt, "sis", $studentId, $studentClass, $section);
+        } else {
+            // No submissions table - just get assignments
+            $sql = "SELECT a.*, 
+                           DATEDIFF(a.due_date, CURDATE()) as days_remaining,
+                           s.subject_name as subject,
+                           NULL as submission_date,
+                           NULL as submission_status,
+                           NULL as marks_obtained,
+                           NULL as feedback
+                    FROM assignments a
+                    LEFT JOIN subjects s ON a.course_code = s.subject_id
+                    WHERE a.class = ? AND (a.section = ? OR a.section IS NULL OR a.section = '')
+                    AND a.status = 'published'
+                    ORDER BY a.due_date DESC";
+            
+            $stmt = mysqli_prepare($conn, $sql);
+            mysqli_stmt_bind_param($stmt, "is", $studentClass, $section);
+        }
+        
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
         $assignments = [];
         
         while ($row = mysqli_fetch_assoc($result)) {
-            $row['is_overdue'] = $row['days_remaining'] < 0 && !$row['submission_status'];
+            $row['is_overdue'] = $row['days_remaining'] < 0 && (!$row['submission_status'] || $row['submission_status'] == 'pending');
             $row['is_upcoming'] = $row['days_remaining'] > 0 && $row['days_remaining'] <= 3;
+            $row['subject'] = $row['subject'] ?? 'General';
             $assignments[] = $row;
         }
         
@@ -199,25 +240,220 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         mysqli_stmt_execute($stmt);
         $childrenResult = mysqli_stmt_get_result($stmt);
         
-        $classConditions = [];
+        $classes = [];
         while ($child = mysqli_fetch_assoc($childrenResult)) {
-            $classConditions[] = "(target_audience LIKE '%{$child['class']}%' OR target_audience = 'all')";
+            $classes[] = $child['class'];
         }
         
-        $whereClause = empty($classConditions) ? "target_audience = 'all'" : '(' . implode(' OR ', $classConditions) . ')';
-        
-        $sql = "SELECT * FROM announcements 
-                WHERE status = 'published' AND " . $whereClause . "
-                ORDER BY created_at DESC LIMIT 20";
-        
-        $result = mysqli_query($conn, $sql);
         $announcements = [];
         
-        while ($row = mysqli_fetch_assoc($result)) {
-            $announcements[] = $row;
+        // Check if announcements table exists
+        $checkTable = mysqli_query($conn, "SHOW TABLES LIKE 'announcements'");
+        if (mysqli_num_rows($checkTable) > 0) {
+            $classConditions = [];
+            foreach ($classes as $class) {
+                $classConditions[] = "(target_audience LIKE '%$class%' OR target_audience = 'all')";
+            }
+            
+            $whereClause = empty($classConditions) ? "target_audience = 'all'" : '(' . implode(' OR ', $classConditions) . ')';
+            
+            $sql = "SELECT *, created_at as timestamp FROM announcements 
+                    WHERE status = 'published' AND " . $whereClause . "
+                    AND display_until >= NOW()
+                    ORDER BY created_at DESC LIMIT 20";
+            
+            $result = mysqli_query($conn, $sql);
+            while ($row = mysqli_fetch_assoc($result)) {
+                $row['priority'] = $row['priority'] ?? 'normal';
+                $announcements[] = $row;
+            }
+        } else {
+            // Fallback to notice table
+            $classConditions = [];
+            foreach ($classes as $class) {
+                $classConditions[] = "class = '$class'";
+            }
+            
+            $classWhere = empty($classConditions) ? "1=1" : '(' . implode(' OR ', $classConditions) . ')';
+            
+            $sql = "SELECT *, timestamp as created_at, 'normal' as priority FROM notice 
+                    WHERE (role = 'student' AND ($classWhere)) OR (role = 'all' OR role = '') 
+                    ORDER BY timestamp DESC LIMIT 20";
+            
+            $result = mysqli_query($conn, $sql);
+            while ($row = mysqli_fetch_assoc($result)) {
+                $announcements[] = $row;
+            }
         }
         
         echo json_encode(['status' => 'success', 'announcements' => $announcements]);
+    }
+    
+    // Get upcoming events
+    else if ($action == "get_upcoming_events") {
+        $guardianId = $_SESSION['parent_id'];
+        
+        $events = [];
+        
+        // Check if noticeboard table exists
+        $checkTable = mysqli_query($conn, "SHOW TABLES LIKE 'noticeboard'");
+        if (mysqli_num_rows($checkTable) > 0) {
+            $sql = "SELECT * FROM noticeboard 
+                    WHERE date >= CURDATE() 
+                    ORDER BY date ASC LIMIT 10";
+            $result = mysqli_query($conn, $sql);
+            while ($row = mysqli_fetch_assoc($result)) {
+                $events[] = $row;
+            }
+        }
+        
+        // Also check announcements for events
+        $checkAnnouncements = mysqli_query($conn, "SHOW TABLES LIKE 'announcements'");
+        if (mysqli_num_rows($checkAnnouncements) > 0) {
+            $sql = "SELECT title, published_date as date, content FROM announcements 
+                    WHERE announcement_type = 'event' AND status = 'published' 
+                    AND display_until >= NOW()
+                    ORDER BY published_date ASC LIMIT 10";
+            $result = mysqli_query($conn, $sql);
+            while ($row = mysqli_fetch_assoc($result)) {
+                $events[] = $row;
+            }
+        }
+        
+        echo json_encode(['status' => 'success', 'events' => $events]);
+    }
+    
+    // Get detailed grades for a student
+    else if ($action == "get_student_grades_detailed") {
+        $studentId = $_POST["student_id"];
+        $guardianId = $_SESSION['parent_id'];
+        
+        // Verify parent has access
+        $verifySql = "SELECT COUNT(*) as count FROM student_parent_link WHERE student_id = ? AND guardian_id = ?";
+        $stmt = mysqli_prepare($conn, $verifySql);
+        mysqli_stmt_bind_param($stmt, "ss", $studentId, $guardianId);
+        mysqli_stmt_execute($stmt);
+        $verifyResult = mysqli_stmt_get_result($stmt);
+        if (mysqli_fetch_assoc($verifyResult)['count'] == 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+            exit();
+        }
+        
+        // Check if marks table exists
+        $checkMarks = mysqli_query($conn, "SHOW TABLES LIKE 'marks'");
+        if (mysqli_num_rows($checkMarks) > 0) {
+            $sql = "SELECT m.*, e.exam_name, e.subject, e.total_marks, e.passing_marks, e.exam_date,
+                           s.subject_name
+                    FROM marks m
+                    LEFT JOIN exams e ON m.exam_id = e.exam_id
+                    LEFT JOIN subjects s ON e.subject = s.subject_id
+                    WHERE m.student_id = ?
+                    ORDER BY e.exam_date DESC, e.subject";
+            
+            $stmt = mysqli_prepare($conn, $sql);
+            mysqli_stmt_bind_param($stmt, "s", $studentId);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            $grades = [];
+            
+            while ($row = mysqli_fetch_assoc($result)) {
+                $row['percentage'] = $row['marks_obtained'] && $row['total_marks'] ? 
+                                    round(($row['marks_obtained'] / $row['total_marks']) * 100, 1) : 0;
+                $row['status'] = $row['marks_obtained'] >= $row['passing_marks'] ? 'Pass' : 'Fail';
+                $row['subject_display'] = $row['subject_name'] ?? $row['subject'];
+                $grades[] = $row;
+            }
+            
+            echo json_encode(['status' => 'success', 'grades' => $grades]);
+        } else {
+            echo json_encode(['status' => 'success', 'grades' => []]);
+        }
+    }
+    
+    // Get student attendance
+    else if ($action == "get_student_attendance") {
+        $studentId = $_POST["student_id"];
+        $guardianId = $_SESSION['parent_id'];
+        
+        // Verify parent has access
+        $verifySql = "SELECT COUNT(*) as count FROM student_parent_link WHERE student_id = ? AND guardian_id = ?";
+        $stmt = mysqli_prepare($conn, $verifySql);
+        mysqli_stmt_bind_param($stmt, "ss", $studentId, $guardianId);
+        mysqli_stmt_execute($stmt);
+        $verifyResult = mysqli_stmt_get_result($stmt);
+        if (mysqli_fetch_assoc($verifyResult)['count'] == 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+            exit();
+        }
+        
+        // Check if attendence table exists
+        $checkTable = mysqli_query($conn, "SHOW TABLES LIKE 'attendence'");
+        if (mysqli_num_rows($checkTable) > 0) {
+            $sql = "SELECT * FROM attendence 
+                    WHERE student_id = ? 
+                    ORDER BY date DESC 
+                    LIMIT 90";
+            
+            $stmt = mysqli_prepare($conn, $sql);
+            mysqli_stmt_bind_param($stmt, "s", $studentId);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            $attendance = [];
+            
+            while ($row = mysqli_fetch_assoc($result)) {
+                $attendance[] = $row;
+            }
+            
+            echo json_encode(['status' => 'success', 'attendance' => $attendance]);
+        } else {
+            echo json_encode(['status' => 'success', 'attendance' => []]);
+        }
+    }
+    
+    // Get student timetable
+    else if ($action == "get_student_timetable") {
+        $studentId = $_POST["student_id"] ?? null;
+        $class = $_POST["class"];
+        $section = $_POST["section"] ?? '';
+        $guardianId = $_SESSION['parent_id'];
+        
+        if ($studentId) {
+            // Verify parent has access
+            $verifySql = "SELECT COUNT(*) as count FROM student_parent_link WHERE student_id = ? AND guardian_id = ?";
+            $stmt = mysqli_prepare($conn, $verifySql);
+            mysqli_stmt_bind_param($stmt, "ss", $studentId, $guardianId);
+            mysqli_stmt_execute($stmt);
+            $verifyResult = mysqli_stmt_get_result($stmt);
+            if (mysqli_fetch_assoc($verifyResult)['count'] == 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+                exit();
+            }
+        }
+        
+        // Check timetable table
+        $checkTable = mysqli_query($conn, "SHOW TABLES LIKE 'timetable'");
+        if (mysqli_num_rows($checkTable) > 0) {
+            $sql = "SELECT tt.*, s.subject_name, t.name as teacher_name
+                    FROM timetable tt
+                    LEFT JOIN subjects s ON tt.subject_id = s.subject_id
+                    LEFT JOIN teachers t ON tt.teacher_id = t.id
+                    WHERE tt.class = ? AND (tt.section = ? OR tt.section IS NULL OR tt.section = '')
+                    ORDER BY FIELD(tt.day, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'), tt.period";
+            
+            $stmt = mysqli_prepare($conn, $sql);
+            mysqli_stmt_bind_param($stmt, "is", $class, $section);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            $timetable = [];
+            
+            while ($row = mysqli_fetch_assoc($result)) {
+                $timetable[] = $row;
+            }
+            
+            echo json_encode(['status' => 'success', 'timetable' => $timetable]);
+        } else {
+            echo json_encode(['status' => 'success', 'timetable' => []]);
+        }
     }
     
     // Get recent activity/notifications
@@ -312,29 +548,68 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $result = mysqli_stmt_get_result($stmt);
         $stats['children_count'] = mysqli_fetch_assoc($result)['count'];
         
-        // Unread messages
-        $messagesSql = "SELECT COUNT(*) as count FROM parent_messages 
-                        WHERE receiver_id = ? AND receiver_type = 'parent' AND is_read = 0";
-        $stmt = mysqli_prepare($conn, $messagesSql);
-        mysqli_stmt_bind_param($stmt, "s", $guardianId);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        $stats['unread_messages'] = mysqli_fetch_assoc($result)['count'];
+        // Unread messages - check if table exists
+        $checkTable = mysqli_query($conn, "SHOW TABLES LIKE 'parent_messages'");
+        if (mysqli_num_rows($checkTable) > 0) {
+            $messagesSql = "SELECT COUNT(*) as count FROM parent_messages 
+                            WHERE receiver_id = ? AND receiver_type = 'parent' AND is_read = 0";
+            $stmt = mysqli_prepare($conn, $messagesSql);
+            mysqli_stmt_bind_param($stmt, "s", $guardianId);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            $stats['unread_messages'] = mysqli_fetch_assoc($result)['count'];
+        } else {
+            $stats['unread_messages'] = 0;
+        }
         
-        // Unread notifications
-        $notifSql = "SELECT COUNT(*) as count FROM parent_notifications 
-                     WHERE parent_id = ? AND is_read = 0";
-        $stmt = mysqli_prepare($conn, $notifSql);
-        mysqli_stmt_bind_param($stmt, "s", $guardianId);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        $stats['new_notifications'] = mysqli_fetch_assoc($result)['count'];
+        // Count announcements from announcements or notice table
+        $checkAnnouncements = mysqli_query($conn, "SHOW TABLES LIKE 'announcements'");
+        if (mysqli_num_rows($checkAnnouncements) > 0) {
+            // Get children's classes
+            $childrenSql = "SELECT DISTINCT s.class FROM students s
+                            JOIN student_parent_link spl ON s.id = spl.student_id
+                            WHERE spl.guardian_id = ?";
+            $stmt = mysqli_prepare($conn, $childrenSql);
+            mysqli_stmt_bind_param($stmt, "s", $guardianId);
+            mysqli_stmt_execute($stmt);
+            $childrenResult = mysqli_stmt_get_result($stmt);
+            
+            $classes = [];
+            while ($child = mysqli_fetch_assoc($childrenResult)) {
+                $classes[] = $child['class'];
+            }
+            
+            if (!empty($classes)) {
+                $classesStr = "'" . implode("','", $classes) . "'";
+                $announceSql = "SELECT COUNT(*) as count FROM announcements 
+                                WHERE status = 'published' AND 
+                                (target_audience = 'all' OR target_audience IN ($classesStr))
+                                AND display_until >= NOW()";
+            } else {
+                $announceSql = "SELECT COUNT(*) as count FROM announcements 
+                                WHERE status = 'published' AND target_audience = 'all'
+                                AND display_until >= NOW()";
+            }
+            $result = mysqli_query($conn, $announceSql);
+            $stats['announcements_count'] = mysqli_fetch_assoc($result)['count'];
+        } else {
+            // Fallback to notice table
+            $noticeSql = "SELECT COUNT(*) as count FROM notice 
+                          WHERE (role = 'all' OR role = 'student' OR role = '')";
+            $result = mysqli_query($conn, $noticeSql);
+            $stats['announcements_count'] = mysqli_fetch_assoc($result)['count'];
+        }
         
         // Upcoming events (next 7 days)
-        $eventsSql = "SELECT COUNT(*) as count FROM noticeboard 
-                      WHERE date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)";
-        $result = mysqli_query($conn, $eventsSql);
-        $stats['upcoming_events'] = mysqli_fetch_assoc($result)['count'];
+        $checkNoticeboard = mysqli_query($conn, "SHOW TABLES LIKE 'noticeboard'");
+        if (mysqli_num_rows($checkNoticeboard) > 0) {
+            $eventsSql = "SELECT COUNT(*) as count FROM noticeboard 
+                          WHERE date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)";
+            $result = mysqli_query($conn, $eventsSql);
+            $stats['upcoming_events'] = mysqli_fetch_assoc($result)['count'];
+        } else {
+            $stats['upcoming_events'] = 0;
+        }
         
         echo json_encode(['status' => 'success', 'data' => $stats]);
     }

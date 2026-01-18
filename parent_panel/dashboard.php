@@ -148,6 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadChildren();
     loadAnnouncements();
     loadPendingAssignments();
+    loadUpcomingEvents();
 });
 
 function loadDashboardStats() {
@@ -161,7 +162,7 @@ function loadDashboardStats() {
         if (data.status === 'success') {
             document.getElementById('childrenCount').textContent = data.data.children_count || 0;
             document.getElementById('unreadMessages').textContent = data.data.unread_messages || 0;
-            document.getElementById('newAnnouncements').textContent = data.data.new_notifications || 0;
+            document.getElementById('newAnnouncements').textContent = data.data.announcements_count || 0;
             document.getElementById('upcomingEvents').textContent = data.data.upcoming_events || 0;
         }
     })
@@ -191,27 +192,34 @@ function loadChildren() {
 function displayChildren(children) {
     const tbody = document.getElementById('childrenList');
     
+    if (!children || children.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No children found</td></tr>';
+        return;
+    }
+    
     let html = '';
     children.forEach((child, index) => {
         if (index < 5) { // Show only first 5 on dashboard
             const attendanceClass = child.attendance_percentage >= 75 ? 'success' : (child.attendance_percentage >= 50 ? 'warning' : 'danger');
+            const studentImage = child.image || 'default-avatar.png';
+            const studentName = child.name || (child.fname + ' ' + (child.lname || ''));
             
             html += `
                 <tr>
                     <td>
-                        <div class="d-flex align-items-center">
-                            <img src="../studentUploads/${child.profile_picture || 'default.jpg'}" 
-                                 width="35" height="35" class="rounded-circle me-2" 
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="../studentUploads/${studentImage}" 
+                                 width="35" height="35" style="border-radius: 50%; object-fit: cover;" 
                                  onerror="this.src='../images/default-avatar.png'">
-                            <span>${child.name}</span>
+                            <span>${studentName}</span>
                         </div>
                     </td>
                     <td>Class ${child.class}${child.section ? ' - ' + child.section : ''}</td>
-                    <td><span class="badge bg-${attendanceClass}">${child.attendance_percentage}%</span></td>
-                    <td><span class="badge bg-info">View Grades</span></td>
+                    <td><span class="badge" style="background: ${attendanceClass === 'success' ? '#10b981' : attendanceClass === 'warning' ? '#f59e0b' : '#ef4444'}; color: white; padding: 5px 10px; border-radius: 12px;">${child.attendance_percentage}%</span></td>
+                    <td><a href="#" onclick="viewStudentGrades('${child.id}'); return false;" style="color: #667eea; text-decoration: none;"><i class='bx bx-bar-chart'></i> View Grades</a></td>
                     <td>
-                        <a href="children.php?student_id=${child.id}" class="btn btn-sm btn-primary">
-                            <i class='bx bx-show'></i> View
+                        <a href="children.php?student_id=${child.id}" style="background: #667eea; color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class='bx bx-show'></i> View Details
                         </a>
                     </td>
                 </tr>
@@ -230,19 +238,28 @@ function loadAnnouncements() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.status === 'success' && data.announcements.length > 0) {
+        if (data.status === 'success' && data.announcements && data.announcements.length > 0) {
             displayNotifications(data.announcements.slice(0, 5));
         } else {
             document.getElementById('notificationsList').innerHTML = `
                 <li class="completed">
                     <div class="task-title">
-                        <i class='bx bx-check-circle'></i>
+                        <i class='bx bx-check-circle' style="color: #10b981;"></i>
                         <p>No new announcements</p>
                     </div>
                 </li>`;
         }
     })
-    .catch(error => console.error('Error loading announcements:', error));
+    .catch(error => {
+        console.error('Error loading announcements:', error);
+        document.getElementById('notificationsList').innerHTML = `
+            <li class="not-completed">
+                <div class="task-title">
+                    <i class='bx bx-error' style="color: #ef4444;"></i>
+                    <p>Error loading announcements</p>
+                </div>
+            </li>`;
+    });
 }
 
 function displayNotifications(announcements) {
@@ -250,14 +267,17 @@ function displayNotifications(announcements) {
     
     let html = '';
     announcements.forEach(announcement => {
-        const timeAgo = getTimeAgo(announcement.created_at);
-        const icon = getAnnouncementIcon(announcement.priority);
+        const timeAgo = getTimeAgo(announcement.created_at || announcement.published_date || announcement.timestamp);
+        const icon = getAnnouncementIcon(announcement.priority || 'normal');
+        const title = announcement.title || announcement.body || 'Announcement';
         
         html += `
-            <li class="not-completed">
+            <li class="not-completed" style="cursor: pointer; transition: background 0.2s;" 
+                onmouseover="this.style.background='#f8f9fa'" 
+                onmouseout="this.style.background='transparent'">
                 <div class="task-title">
                     <i class='bx ${icon}'></i>
-                    <p>${announcement.title}</p>
+                    <p>${title}</p>
                 </div>
                 <small class="text-muted">${timeAgo}</small>
             </li>
@@ -276,50 +296,95 @@ function loadPendingAssignments() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.status === 'success' && data.children.length > 0) {
-            // Load assignments for first child (or all children)
-            const child = data.children[0];
-            return fetch('../assets/parentPortalHandler.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: `action=get_student_assignments&student_id=${child.id}`
+        console.log('Children data:', data);
+        if (data.status === 'success' && data.children && data.children.length > 0) {
+            // Load assignments for all children
+            const assignmentPromises = data.children.map(child => {
+                return fetch('../assets/parentPortalHandler.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `action=get_student_assignments&student_id=${child.id}`
+                })
+                .then(res => res.json())
+                .then(assignData => {
+                    console.log(`Assignments for ${child.name}:`, assignData);
+                    if (assignData.status === 'success' && assignData.assignments) {
+                        return assignData.assignments.map(a => ({
+                            ...a,
+                            student_name: child.name || child.fname + ' ' + (child.lname || ''),
+                            student_id: child.id
+                        }));
+                    }
+                    return [];
+                })
+                .catch(err => {
+                    console.error(`Error loading assignments for ${child.name}:`, err);
+                    return [];
+                });
             });
+            
+            return Promise.all(assignmentPromises);
+        } else {
+            console.log('No children found');
+            document.getElementById('assignmentsList').innerHTML = '<tr><td colspan="5" class="text-center text-muted">No children found</td></tr>';
+            return Promise.resolve([]);
         }
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success' && data.assignments.length > 0) {
-            displayPendingAssignments(data.assignments.filter(a => !a.submission_status || a.submission_status === 'pending').slice(0, 5));
+    .then(allAssignments => {
+        console.log('All assignments:', allAssignments);
+        const flatAssignments = allAssignments.flat();
+        console.log('Flat assignments:', flatAssignments);
+        
+        if (flatAssignments.length === 0) {
+            document.getElementById('assignmentsList').innerHTML = '<tr><td colspan="5" class="text-center text-muted">📚 No assignments found</td></tr>';
+            return;
+        }
+        
+        const pendingAssignments = flatAssignments
+            .filter(a => !a.submission_status || a.submission_status === 'pending')
+            .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+            .slice(0, 5);
+            
+        console.log('Pending assignments:', pendingAssignments);
+        
+        if (pendingAssignments.length > 0) {
+            displayPendingAssignments(pendingAssignments);
         } else {
-            document.getElementById('assignmentsList').innerHTML = '<tr><td colspan="5" class="text-center text-muted">No pending assignments</td></tr>';
+            document.getElementById('assignmentsList').innerHTML = '<tr><td colspan="5" class="text-center" style="color: #10b981;">✅ All assignments completed!</td></tr>';
         }
     })
     .catch(error => {
         console.error('Error loading assignments:', error);
-        document.getElementById('assignmentsList').innerHTML = '<tr><td colspan="5" class="text-center text-muted">No pending assignments</td></tr>';
+        document.getElementById('assignmentsList').innerHTML = '<tr><td colspan="5" class="text-center text-danger">⚠️ Error loading assignments. Check console for details.</td></tr>';
     });
 }
 
 function displayPendingAssignments(assignments) {
     const tbody = document.getElementById('assignmentsList');
     
+    if (!assignments || assignments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No pending assignments</td></tr>';
+        return;
+    }
+    
     let html = '';
     assignments.forEach(assignment => {
         const statusClass = assignment.is_overdue ? 'danger' : (assignment.is_upcoming ? 'warning' : 'info');
         const statusText = assignment.is_overdue ? 'Overdue' : (assignment.is_upcoming ? 'Due Soon' : 'Pending');
+        const statusColor = assignment.is_overdue ? '#ef4444' : (assignment.is_upcoming ? '#f59e0b' : '#3b82f6');
         
         html += `
             <tr>
-                <td>Child Name</td>
-                <td>${assignment.title}</td>
-                <td>${assignment.subject}</td>
+                <td>${assignment.student_name || 'Student'}</td>
+                <td><strong>${assignment.title || assignment.assignment_title || 'Assignment'}</strong></td>
+                <td>${assignment.subject || assignment.subject_name || 'N/A'}</td>
                 <td>${formatDate(assignment.due_date)}</td>
-                <td><span class="badge bg-${statusClass}">${statusText}</span></td>
+                <td><span class="badge" style="background: ${statusColor}; color: white; padding: 5px 12px; border-radius: 12px;">${statusText}</span></td>
             </tr>
         `;
     });
     
-    tbody.innerHTML = html || '<tr><td colspan="5" class="text-center text-muted">No pending assignments</td></tr>';
+    tbody.innerHTML = html;
 }
 
 function getAnnouncementIcon(priority) {
@@ -343,11 +408,70 @@ function getTimeAgo(datetime) {
 }
 
 function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
+
+function viewStudentGrades(studentId) {
+    window.location.href = `children.php?student_id=${studentId}#grades`;
+}
+
+// Load upcoming events from calendar/notices
+function loadUpcomingEvents() {
+    fetch('../assets/parentPortalHandler.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=get_upcoming_events'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' && data.events && data.events.length > 0) {
+            displayEvents(data.events.slice(0, 5));
+        } else {
+            document.getElementById('eventsList').innerHTML = `
+                <li class="completed">
+                    <div class="task-title">
+                        <i class='bx bx-calendar' style="color: #10b981;"></i>
+                        <p>No upcoming events</p>
+                    </div>
+                </li>`;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading events:', error);
+        document.getElementById('eventsList').innerHTML = `
+            <li class="not-completed">
+                <div class="task-title">
+                    <i class='bx bx-calendar' style="color: #999;"></i>
+                    <p>No upcoming events</p>
+                </div>
+            </li>`;
+    });
+}
+
+function displayEvents(events) {
+    const list = document.getElementById('eventsList');
+    let html = '';
+    
+    events.forEach(event => {
+        const eventDate = formatDate(event.date || event.event_date);
+        html += `
+            <li class="not-completed" style="cursor: pointer;">
+                <div class="task-title">
+                    <i class='bx bx-calendar-event' style="color: #667eea;"></i>
+                    <p>${event.title || event.event_name}</p>
+                </div>
+                <small class="text-muted">${eventDate}</small>
+            </li>
+        `;
+    });
+    
+    list.innerHTML = html;
+}
 </script>
 
+<script>
 function getNotificationIcon(type) {
     const icons = {
         'grade_update': 'bx-trophy',

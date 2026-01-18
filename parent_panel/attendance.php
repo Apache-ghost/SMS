@@ -93,11 +93,124 @@ function loadAttendance() {
     
     content.innerHTML = `<div class="text-center"><div class="spinner-border text-primary"></div><p class="mt-2">Loading attendance...</p></div>`;
     
-    fetch('../assets/fetchFullAttendence.php?student_id=' + studentId)
+    fetch('../assets/parentPortalHandler.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `action=get_student_attendance&student_id=${studentId}`
+    })
     .then(response => response.json())
     .then(data => {
-        if (data && data.length > 0) {
-            let present = 0, absent = 0, total = data.length;
+        console.log('Attendance data:', data);
+        if (data.status === 'success' && data.attendance && data.attendance.length > 0) {
+            displayAttendance(data.attendance);
+        } else {
+            content.innerHTML = `
+                <div class="alert alert-info text-center">
+                    <i class='bx bx-calendar-check' style='font-size: 60px;'></i>
+                    <p class="mt-3">No attendance records found</p>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading attendance:', error);
+        content.innerHTML = `<div class="alert alert-danger"><i class='bx bx-error'></i> Error loading attendance</div>`;
+    });
+}
+
+function displayAttendance(attendanceData) {
+    const content = document.getElementById('attendanceContent');
+    
+    let present = 0, absent = 0;
+    attendanceData.forEach(record => {
+        if (record.attendence === 'present' || record.status === 'present') present++;
+        else absent++;
+    });
+    
+    const total = attendanceData.length;
+    const percentage = total > 0 ? ((present / total) * 100).toFixed(2) : 0;
+    const percentageColor = percentage >= 75 ? '#10b981' : percentage >= 50 ? '#f59e0b' : '#ef4444';
+    
+    let html = `
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center" style="border-left: 4px solid #10b981;">
+                    <div class="card-body">
+                        <h3 style="color: #10b981;">${present}</h3>
+                        <p class="text-muted mb-0">Present</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center" style="border-left: 4px solid #ef4444;">
+                    <div class="card-body">
+                        <h3 style="color: #ef4444;">${absent}</h3>
+                        <p class="text-muted mb-0">Absent</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center" style="border-left: 4px solid #3b82f6;">
+                    <div class="card-body">
+                        <h3 style="color: #3b82f6;">${total}</h3>
+                        <p class="text-muted mb-0">Total Days</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center" style="border-left: 4px solid ${percentageColor};">
+                    <div class="card-body">
+                        <h3 style="color: ${percentageColor};">${percentage}%</h3>
+                        <p class="text-muted mb-0">Attendance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    html += '<div class="table-responsive"><table class="table table-striped">';
+    html += `
+        <thead style="background: #667eea; color: white;">
+            <tr>
+                <th>Date</th>
+                <th>Day</th>
+                <th>Status</th>
+                <th>Remarks</th>
+            </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    attendanceData.forEach(record => {
+        const status = record.attendence || record.status;
+        const statusColor = status === 'present' ? '#10b981' : '#ef4444';
+        const statusIcon = status === 'present' ? 'bx-check-circle' : 'bx-x-circle';
+        const date = new Date(record.date);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+        
+        html += `
+            <tr>
+                <td>${formatDate(record.date)}</td>
+                <td>${dayName}</td>
+                <td>
+                    <span style="background: ${statusColor}; color: white; padding: 5px 12px; border-radius: 12px;">
+                        <i class='bx ${statusIcon}'></i> ${status.toUpperCase()}
+                    </span>
+                </td>
+                <td>${record.remarks || '-'}</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    content.innerHTML = html;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
             
             let html = `
                 <div class="row mb-4">

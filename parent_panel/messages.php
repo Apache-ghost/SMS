@@ -148,23 +148,39 @@ function loadTeachers() {
     .then(response => response.json())
     .then(data => {
         const select = document.getElementById('teacherSelect');
+        let html = '<option value="admin">School Admin</option>';
         if (data && data.length > 0) {
-            let html = '<option value="">-- Select Teacher --</option>';
             data.forEach(teacher => {
-                html += `<option value="${teacher.id}">${teacher.fname} ${teacher.lname} - ${teacher.subject}</option>`;
+                html += `<option value="${teacher.id}">${teacher.fname || ''} ${teacher.lname || ''} - ${teacher.subject || ''}</option>`;
             });
-            select.innerHTML = html;
         }
+        select.innerHTML = html;
+    })
+    .catch(err => {
+        console.error('Error loading teachers:', err);
+        document.getElementById('teacherSelect').innerHTML = '<option value="admin">School Admin</option>';
     });
 }
 
 function sendMessage() {
+    const studentId = document.getElementById('childSelectMsg').value;
+    const receiverId = document.getElementById('teacherSelect').value || 'admin';
+    const subject = document.getElementById('msgSubject').value;
+    const message = document.getElementById('msgBody').value;
+    
+    if (!subject || !message) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
     const formData = new FormData();
     formData.append('action', 'send_message');
-    formData.append('student_id', document.getElementById('childSelectMsg').value);
-    formData.append('receiver_id', document.getElementById('teacherSelect').value);
-    formData.append('subject', document.getElementById('msgSubject').value);
-    formData.append('message', document.getElementById('msgBody').value);
+    formData.append('student_id', studentId || '');
+    formData.append('receiver_type', receiverId === 'admin' ? 'admin' : 'teacher');
+    formData.append('receiver_id', receiverId);
+    formData.append('receiver_name', receiverId === 'admin' ? 'School Admin' : 'Teacher');
+    formData.append('subject', subject);
+    formData.append('message', message);
     
     fetch('../assets/manageParentMessages.php', {
         method: 'POST',
@@ -173,13 +189,19 @@ function sendMessage() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            alert('Message sent successfully!');
+            alert('✅ Message sent successfully!');
             document.getElementById('composeForm').reset();
-            bootstrap.Modal.getInstance(document.getElementById('composeModal')).hide();
+            const modalEl = document.getElementById('composeModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
             loadMessages();
         } else {
-            alert('Error sending message: ' + data.message);
+            alert('❌ Error: ' + (data.message || 'Unknown error'));
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Failed to send message');
     });
 }
 
