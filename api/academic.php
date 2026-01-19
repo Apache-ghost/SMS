@@ -168,6 +168,22 @@ try {
                 $response = ['success' => false, 'message' => 'Missing enrollment_id'];
             }
         }
+        // In the GET section of academic.php, add:
+        elseif ($action === 'total-enrollments') {
+            if (User::hasRole(['admin', 'staff'])) {
+                $response = $academic->getTotalEnrollments();
+            } else {
+                $response = ['success' => false, 'message' => 'Unauthorized'];
+            }
+        }
+
+        elseif ($action === 'active-students') {
+            if (User::hasRole(['admin', 'staff'])) {
+                $response = $academic->getActiveStudents();
+            } else {
+                $response = ['success' => false, 'message' => 'Unauthorized'];
+            }
+        }
         
         elseif ($action === 'course-exams') {
             if (isset($_GET['course_id'])) {

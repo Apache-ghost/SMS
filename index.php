@@ -1,9 +1,14 @@
 <?php
-// Set proper headers for HTML without restrictive CSP
-header('Content-Type: text/html; charset=utf-8');
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self'");
-header('X-Content-Type-Options: nosniff');
-header('X-Frame-Options: SAMEORIGIN');
+// FILE: /SMS/index.php
+// Login and Registration page only
+
+session_start();
+
+// If user already logged in, redirect to dashboard
+if (isset($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -30,19 +35,18 @@ header('X-Frame-Options: SAMEORIGIN');
             background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .login-container {
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
             padding: 20px;
         }
 
-        .login-card {
+        .login-container {
             width: 100%;
             max-width: 420px;
+        }
+
+        .login-card {
             background: white;
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -117,6 +121,11 @@ header('X-Frame-Options: SAMEORIGIN');
             box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
         }
 
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
         .btn-register {
             width: 100%;
             padding: 12px;
@@ -133,109 +142,6 @@ header('X-Frame-Options: SAMEORIGIN');
         .btn-register:hover {
             background: var(--primary);
             color: white;
-        }
-
-        .login-footer {
-            text-align: center;
-            padding: 20px;
-            border-top: 1px solid #e5e7eb;
-            color: #6b7280;
-            font-size: 13px;
-        }
-
-        .alert {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .alert-danger {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-        }
-
-        .alert-success {
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-        }
-
-        .spinner-border {
-            width: 18px;
-            height: 18px;
-            margin-right: 8px;
-        }
-
-        .modal-backdrop {
-            background: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-content {
-            border-radius: 12px;
-            border: none;
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
-            color: white;
-            border: none;
-        }
-
-        .dashboard-nav {
-            background: white;
-            padding: 15px 30px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .dashboard-content {
-            padding: 30px;
-            background: #f9fafb;
-            min-height: 100vh;
-        }
-
-        .welcome-card {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            margin-bottom: 30px;
-        }
-
-        .module-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-
-        .module-card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            border-left: 5px solid var(--primary);
-        }
-
-        .module-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .module-card h3 {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 10px;
-        }
-
-        .module-card p {
-            color: #6b7280;
-            font-size: 14px;
-            line-height: 1.5;
         }
 
         .nav-tabs {
@@ -268,22 +174,56 @@ header('X-Frame-Options: SAMEORIGIN');
         .tab-content.active {
             display: block;
         }
+
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-danger {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .login-footer {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
-    <!-- Login View -->
-    <div id="loginView" class="login-container">
+    <div class="login-container">
         <div class="login-card">
+            <!-- Header -->
             <div class="login-header">
                 <h1>ERP System</h1>
                 <p>Academic | Finance | Human Resources</p>
             </div>
+
+            <!-- Body -->
             <div class="login-body">
+                <!-- Alert Container -->
                 <div id="alertContainer"></div>
+
+                <!-- Tabs Navigation -->
                 <div class="nav-tabs" role="tablist">
                     <button class="nav-link active" id="loginTab" onclick="switchTab('login')" type="button" role="tab">Login</button>
                     <button class="nav-link" id="registerTab" onclick="switchTab('register')" type="button" role="tab">Register</button>
                 </div>
+
+                <!-- Login Tab -->
                 <div class="tab-content active" id="login" role="tabpanel">
                     <form id="loginForm" onsubmit="handleLogin(event)">
                         <div class="form-group">
@@ -299,6 +239,8 @@ header('X-Frame-Options: SAMEORIGIN');
                         </button>
                     </form>
                 </div>
+
+                <!-- Register Tab -->
                 <div class="tab-content" id="register" role="tabpanel">
                     <form id="registerForm" onsubmit="handleRegister(event)">
                         <div class="form-group">
@@ -319,116 +261,41 @@ header('X-Frame-Options: SAMEORIGIN');
                                 <option value="">Select a role</option>
                                 <option value="student">Student</option>
                                 <option value="faculty">Faculty</option>
-                                <option value="staff">Staff</option>
-                                <option value="admin">Admin</option>
                             </select>
                         </div>
                         <button type="submit" class="btn-login">Create Account</button>
                     </form>
                 </div>
             </div>
+
+            <!-- Footer -->
             <div class="login-footer">
                 <p>© 2025 ERP System. All rights reserved.</p>
             </div>
         </div>
     </div>
 
-    <!-- Dashboard View -->
-    <div id="dashboardView" style="display: none;">
-        <div class="dashboard-nav">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h2 style="margin: 0; color: #1f2937;">ERP System Dashboard</h2>
-                </div>
-                <div>
-                    <span id="userGreeting" style="color: #6b7280; font-size: 14px;"></span>
-                    <button onclick="handleLogout()" class="btn btn-outline-danger btn-sm" style="margin-left: 15px;">Logout</button>
-                </div>
-            </div>
-        </div>
-        <div class="dashboard-content">
-            <div class="welcome-card">
-                <h3>Welcome to ERP System</h3>
-                <p id="welcomeMessage" style="color: #6b7280; margin: 0;"></p>
-            </div>
-
-            <div class="module-grid">
-                <div class="module-card" onclick="navigateToModule('academic')">
-                    <h3>📚 Academic Module</h3>
-                    <p>Manage courses, enrollments, academic programs, and student records.</p>
-                </div>
-                <div class="module-card" onclick="navigateToModule('finance')">
-                    <h3>💰 Finance & Marketing</h3>
-                    <p>Handle financial transactions, budgets, and marketing campaigns.</p>
-                </div>
-                <div class="module-card" onclick="navigateToModule('hr')">
-                    <h3>👥 Administration & HR</h3>
-                    <p>Manage employees, leave requests, and administrative tasks.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        // API endpoint
         const API_BASE = '/SMS/api/auth.php';
-
-        function showAlert(message, type = 'danger') {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-            alertContainer.innerHTML = '<div class="alert ' + alertClass + '">' + message + '</div>';
-            setTimeout(function() {
-                alertContainer.innerHTML = '';
-            }, 5000);
-        }
 
         function switchTab(tabName) {
             const tabs = document.querySelectorAll('.tab-content');
             const navLinks = document.querySelectorAll('.nav-link');
             
-            tabs.forEach(function(tab) {
-                tab.classList.remove('active');
-            });
-            navLinks.forEach(function(link) {
-                link.classList.remove('active');
-            });
+            tabs.forEach(tab => tab.classList.remove('active'));
+            navLinks.forEach(link => link.classList.remove('active'));
             
             document.getElementById(tabName).classList.add('active');
             document.getElementById(tabName + 'Tab').classList.add('active');
         }
 
-        async function apiCall(action, method, data) {
-            try {
-                const options = {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include'
-                };
-
-                if (data) {
-                    options.body = JSON.stringify(data);
-                }
-
-                const url = API_BASE + '?action=' + action;
-                const response = await fetch(url, options);
-                
-                if (!response.ok) {
-                    throw new Error('HTTP error! status: ' + response.status);
-                }
-
-                const text = await response.text();
-                if (!text) {
-                    throw new Error('Empty response from server');
-                }
-
-                return JSON.parse(text);
-            } catch (error) {
-                console.error('API Error:', error);
-                return { success: false, message: 'API Error: ' + error.message };
-            }
+        function showAlert(message, type = 'danger') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            alertContainer.innerHTML = '<div class="alert ' + alertClass + '">' + message + '</div>';
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
         }
 
         async function handleLogin(event) {
@@ -436,20 +303,38 @@ header('X-Frame-Options: SAMEORIGIN');
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             const btn = event.target.querySelector('button');
+            const btnText = btn.innerHTML;
+            
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border"></span>Logging in...';
+            btn.innerHTML = '<span id="loginBtnText">Logging in...</span>';
 
-            const result = await apiCall('login', 'POST', { email: email, password: password });
+            try {
+                const response = await fetch(API_BASE + '?action=login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
 
-            if (result.success) {
-                showAlert('Login successful! Redirecting...', 'success');
-                setTimeout(function() {
-                    loadDashboard();
-                }, 1000);
-            } else {
-                showAlert(result.message || 'Login failed');
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('Login successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/SMS/dashboard.php';
+                    }, 1000);
+                } else {
+                    showAlert(result.message || 'Login failed');
+                    btn.disabled = false;
+                    btn.innerHTML = btnText;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('An error occurred. Please try again.');
                 btn.disabled = false;
-                btn.innerHTML = 'Login';
+                btn.innerHTML = btnText;
             }
         }
 
@@ -460,63 +345,41 @@ header('X-Frame-Options: SAMEORIGIN');
             const password = document.getElementById('registerPassword').value;
             const role = document.getElementById('registerRole').value;
             const btn = event.target.querySelector('button');
-            btn.disabled = true;
-
-            const result = await apiCall('register', 'POST', { 
-                full_name: full_name, 
-                email: email, 
-                password: password, 
-                role: role 
-            });
-
-            if (result.success) {
-                showAlert('Registration successful! Please login.', 'success');
-                document.getElementById('registerForm').reset();
-                setTimeout(function() {
-                    switchTab('login');
-                }, 1500);
-            } else {
-                showAlert(result.message || 'Registration failed');
-                btn.disabled = false;
-            }
-        }
-
-        async function loadDashboard() {
-            const result = await apiCall('current-user', 'GET', null);
-
-            if (result.success) {
-                const user = result.user;
-                document.getElementById('loginView').style.display = 'none';
-                document.getElementById('dashboardView').style.display = 'block';
-                document.getElementById('userGreeting').textContent = 'Welcome, ' + user.full_name + '!';
-                document.getElementById('welcomeMessage').textContent = 'You are logged in as a ' + user.role + '. Access the modules below to manage your operations.';
-            } else {
-                console.log('Not authenticated');
-            }
-        }
-
-        async function handleLogout() {
-            await apiCall('logout', 'POST', null);
-            document.getElementById('dashboardView').style.display = 'none';
-            document.getElementById('loginView').style.display = 'flex';
-            document.getElementById('loginForm').reset();
-            document.getElementById('registerForm').reset();
-            showAlert('Logged out successfully', 'success');
-        }
-
-        function navigateToModule(module) {
+            const btnText = btn.innerHTML;
             
-            if (module === 'academic') {
-                window.location.href = 'academic.html';
-            } else if (module === 'finance') {
-                window.location.href = 'finance.php';
-            } else if (module === 'hr') {
-                window.location.href = 'hr_dashboard.html';
+            btn.disabled = true;
+            btn.innerHTML = 'Creating account...';
+
+            try {
+                const response = await fetch(API_BASE + '?action=register', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ full_name, email, password, role })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('Registration successful! Please login.', 'success');
+                    document.getElementById('registerForm').reset();
+                    setTimeout(() => {
+                        switchTab('login');
+                    }, 1500);
+                } else {
+                    showAlert(result.message || 'Registration failed');
+                    btn.disabled = false;
+                    btn.innerHTML = btnText;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('An error occurred. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = btnText;
             }
         }
-
-        // Check if already logged in on page load
-        window.addEventListener('load', loadDashboard);
     </script>
 </body>
 </html>

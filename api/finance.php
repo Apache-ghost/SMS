@@ -158,7 +158,15 @@ try {
         elseif ($action === 'payment-receipt') {
             $response = $finance->getPaymentReceipt($_GET['payment_id']);
         }
-        
+        // Add this in the GET section (around line 100)
+        elseif ($action === 'all-students') {
+            if (User::hasRole(['admin', 'staff'])) {
+                $response = $finance->getAllStudents();
+            } else {
+                $response = ['success' => false, 'message' => 'Unauthorized'];
+            }
+        }
+
         // Expenses
         elseif ($action === 'expenses') {
             if (User::hasRole(['admin', 'staff'])) {
@@ -197,14 +205,7 @@ try {
             }
         }
         
-        elseif ($action === 'campaign-analytics') {
-            if (User::hasRole(['admin', 'staff'])) {
-                $response = $finance->getCampaignAnalytics($_GET['campaign_id']);
-            } else {
-                $response = ['success' => false, 'message' => 'Unauthorized'];
-            }
-        }
-        
+       
         // Leads
         elseif ($action === 'campaign-leads') {
             if (User::hasRole(['admin', 'staff'])) {
@@ -224,6 +225,37 @@ try {
                 $response = ['success' => false, 'message' => 'Unauthorized'];
             }
         }
+        // Add this in the GET section (around line 100)
+        elseif ($action === 'payments-tracking') {
+            if (User::hasRole(['admin', 'staff'])) {
+                $response = $finance->getAllPayments();
+            } else {
+                $response = ['success' => false, 'message' => 'Unauthorized'];
+            }
+        }
+        elseif ($action === 'outstanding-invoices') {
+            if (User::hasRole(['admin', 'staff'])) {
+                $response = $finance->getOutstandingInvoices();
+            } else {
+                $response = $finance->getStudentOutstandingInvoices($user['id']);
+            }
+        }
+        // Add these in the GET section
+    elseif ($action === 'campaigns-dropdown') {
+        if (User::hasRole(['admin', 'staff'])) {
+            $response = $finance->getAllCampaignsForDropdown();
+        } else {
+            $response = ['success' => false, 'message' => 'Unauthorized'];
+        }
+    }
+    elseif ($action === 'campaign-analytics') {
+        if (User::hasRole(['admin', 'staff'])) {
+            $response = $finance->getCampaignAnalytics($_GET['campaign_id']);
+        } else {
+            $response = ['success' => false, 'message' => 'Unauthorized'];
+        }
+    }
+// The 'campaign-leads' endpoint should already exist - verify it's there
         
         elseif ($action === 'dashboard-stats') {
             if (User::hasRole(['admin', 'staff'])) {

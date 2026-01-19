@@ -39,6 +39,28 @@ class Academic {
         }
         return ['success' => false, 'message' => 'Failed to fetch programs'];
     }
+    public function getTotalEnrollments() {
+    $query = "SELECT COUNT(*) as total FROM enrollments WHERE status = 'enrolled'";
+    $result = $this->db->query($query);
+    
+    if ($result) {
+        $row = $result->fetch_assoc();
+        return ['success' => true, 'total' => $row['total']];
+    }
+    return ['success' => false, 'total' => 0];
+}
+
+public function getActiveStudents() {
+    $query = "SELECT COUNT(DISTINCT user_id) as total FROM enrollments WHERE status = 'enrolled'";
+    $result = $this->db->query($query);
+    
+    if ($result) {
+        $row = $result->fetch_assoc();
+        return ['success' => true, 'total' => $row['total']];
+    }
+    return ['success' => false, 'total' => 0];
+}
+
 
     public function deleteProgram($program_id) {
         $query = "DELETE FROM academic_programs WHERE id = ?";

@@ -800,6 +800,8 @@
         await loadUserData();
         setDefaultDates();
         await loadDashboard();
+        // Add this line to initialize payment amount listener
+        document.getElementById('paymentAmount').addEventListener('input', updatePaymentSummary);
     });
 
     async function loadUserData() {
@@ -853,12 +855,25 @@
 
         if (sectionId === 'my-invoices') loadMyInvoices();
         else if (sectionId === 'my-payments') loadMyPayments();
+        else if (sectionId === 'payment-portal') loadOutstandingInvoices();
         else if (sectionId === 'all-invoices') loadAllInvoices();
         else if (sectionId === 'payments-tracking') loadPaymentsTracking();
         else if (sectionId === 'expenses') loadExpenses();
         else if (sectionId === 'campaigns') loadCampaigns();
-        else if (sectionId === 'leads') loadCampaignsForLeads();
-        else if (sectionId === 'analytics') loadCampaignsForAnalytics();
+        else if (sectionId === 'leads') {
+            loadCampaignsForLeads();
+            document.getElementById('leadsTable').innerHTML = '<tr><td colspan="6" class="text-center">Select a campaign</td></tr>';
+        }
+        else if (sectionId === 'analytics') {
+            loadCampaignsForAnalytics();
+            // Clear previous analytics data
+            document.getElementById('analyticsBudget').textContent = '₦0';
+            document.getElementById('analyticsLeads').textContent = '0';
+            document.getElementById('analyticsConversions').textContent = '0';
+            document.getElementById('analyticsRate').textContent = '0%';
+            document.getElementById('analyticsRevenue').textContent = '₦0';
+            document.getElementById('analyticsROI').textContent = '0%';
+        }
     }
 
     function goBack() {
@@ -867,19 +882,36 @@
 
     async function apiCall(action, method, data = null) {
         try {
+            let url = API_BASE + '?action=' + action;
+            
+            // For GET requests, append data as query parameters
+            if (method === 'GET' && data) {
+                const params = new URLSearchParams();
+                for (const key in data) {
+                    if (data[key] !== null && data[key] !== undefined) {
+                        params.append(key, data[key]);
+                    }
+                }
+                url += '&' + params.toString();
+            }
+            
             const options = {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             };
-            if (data) options.body = JSON.stringify(data);
+            
+            // For POST/PUT requests, put data in body
+            if (method !== 'GET' && data) {
+                options.body = JSON.stringify(data);
+            }
 
-            const response = await fetch(API_BASE + '?action=' + action, options);
+            const response = await fetch(url, options);
             const text = await response.text();
             return text ? JSON.parse(text) : { success: false };
         } catch (error) {
             console.error('API Error:', error);
-            return { success: false, message: 'API Error' };
+            return { success: false, message: 'API Error: ' + error.message };
         }
     }
 
@@ -918,6 +950,20 @@
         } else {
             container.innerHTML = '<p class="text-muted">No invoices found</p>';
         }
+    }
+    // Add function to update payment summary
+    function updatePaymentSummary() {
+        const invoiceAmount = parseFloat(document.getElementById('summaryInvoiceAmount').textContent.replace('₦', '').replace(/,/g, '')) || 0;
+        const paymentAmount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+        
+        document.getElementById('summaryPaymentAmount').textContent = '₦' + paymentAmount.toLocaleString();
+        
+        const balance = invoiceAmount - paymentAmount;
+        document.getElementById('summaryBalance').textContent = '₦' + balance.toLocaleString();
+        
+        // Update balance color
+        const balanceElement = document.getElementById('summaryBalance');
+        balanceElement.style.color = balance === 0 ? 'var(--success)' : 'var(--danger)';
     }
 
     // Invoice Functions
@@ -997,6 +1043,27 @@
             showAlert(result.message);
         }
     }
+    async function loadAllStudents() {
+        try {
+            const result = await apiCall('all-students', 'GET');
+            if (result.success && result.data) {
+                const select = document.getElementById('invoiceStudentSelect');
+                select.innerHTML = '<option value="">Select student...</option>' + 
+                    result.data.map(student => 
+                        '<option value="' + student.id + '">' + 
+                        student.full_name + 
+                        (student.email ? ' (' + student.email + ')' : '') +
+                        (student.student_id ? ' - ID: ' + student.student_id : '') +
+                        '</option>'
+                    ).join('');
+            } else {
+                showAlert('Failed to load students');
+            }
+        } catch (error) {
+            console.error('Error loading students:', error);
+            showAlert('Error loading students');
+        }
+    }
 
     async function updateInvoiceStatus(invoiceId) {
         const newStatus = prompt('Enter new status (pending/paid/overdue/cancelled):');
@@ -1030,17 +1097,48 @@
     }
 
     async function loadPaymentsTracking() {
-        // Need to add endpoint for all payments
-        showAlert('Loading payments tracking...');
+        const result = await apiCall('payments-tracking', 'GET');
+        const container = document.getElementById('paymentsTrackingTable');
+        if (result.success && result.data) {
+            if (result.data.length === 0) {
+                container.innerHTML = '<tr><td colspan="7" class="text-center">No payments found</td></tr>';
+                return;
+            }
+            container.innerHTML = result.data.map(pay => 
+                '<tr><td>' + (pay.full_name || 'N/A') + '</td>' +
+                '<td>' + (pay.invoice_number || 'N/A') + '</td>' +
+                '<td>' + (pay.reference_number || 'N/A') + '</td>' +
+                '<td>₦' + (pay.amount ? pay.amount.toLocaleString() : '0') + '</td>' +
+                '<td>' + (pay.payment_method || 'N/A') + '</td>' +
+                '<td>' + (pay.payment_date ? new Date(pay.payment_date).toLocaleDateString() : 'N/A') + '</td>' +
+                '<td><span class="badge bg-success">' + (pay.status || 'N/A') + '</span></td></tr>'
+            ).join('');
+        } else {
+            container.innerHTML = '<tr><td colspan="7" class="text-center">Error loading payments</td></tr>';
+        }
+    }
+    // Load outstanding invoices for payment portal
+    async function loadOutstandingInvoices() {
+        const result = await apiCall('outstanding-invoices', 'GET');
+        const select = document.getElementById('invoiceSelect');
+        
+        if (result.success && result.data) {
+            if (result.data.length === 0) {
+                select.innerHTML = '<option value="">No outstanding invoices</option>';
+                return;
+            }
+            
+            select.innerHTML = '<option value="">Choose an invoice...</option>' + 
+                result.data.map(inv => 
+                    '<option value="' + inv.id + '" data-amount="' + inv.amount + '">' + 
+                    inv.invoice_number + ' - ₦' + inv.amount.toLocaleString() + 
+                    (inv.full_name ? ' (' + inv.full_name + ')' : '') + '</option>'
+                ).join('');
+        } else {
+            select.innerHTML = '<option value="">Error loading invoices</option>';
+        }
     }
 
-    async function loadInvoiceAmount() {
-        const invoiceId = document.getElementById('invoiceSelect').value;
-        if (!invoiceId) return;
-
-        const result = await apiCall('invoice-details', 'GET');
-        // Update with actual endpoint
-    }
 
     async function processPayment() {
         const invoiceId = document.getElementById('invoiceSelect').value;
@@ -1081,7 +1179,22 @@
             downloadFile(content, 'receipt.txt');
         }
     }
+    // Update the loadInvoiceAmount function
+    async function loadInvoiceAmount() {
+        const invoiceId = document.getElementById('invoiceSelect').value;
+        if (!invoiceId) {
+            document.getElementById('summaryInvoiceAmount').textContent = '₦0';
+            document.getElementById('summaryBalance').textContent = '₦0';
+            return;
+        }
 
+        const selectedOption = document.getElementById('invoiceSelect').selectedOptions[0];
+        const invoiceAmount = selectedOption.getAttribute('data-amount') || 0;
+        
+        document.getElementById('summaryInvoiceAmount').textContent = '₦' + parseFloat(invoiceAmount).toLocaleString();
+        document.getElementById('paymentAmount').value = invoiceAmount;
+        updatePaymentSummary();
+    }
     // Expense Functions
     async function loadExpenses() {
         const startDate = document.getElementById('expenseStartDate').value;
@@ -1221,29 +1334,61 @@
         }
     }
 
-    // Lead Functions
+    // Fix the loadCampaignsForLeads function
     async function loadCampaignsForLeads() {
-        const result = await apiCall('campaigns', 'GET');
+        const result = await apiCall('campaigns-dropdown', 'GET');
         if (result.success && result.data) {
             const select = document.getElementById('leadscampaignSelect');
             select.innerHTML = '<option value="">Choose a campaign...</option>' + 
-                result.data.map(c => '<option value="' + c.id + '">' + c.campaign_name + '</option>').join('');
+                result.data.map(c => 
+                    '<option value="' + c.id + '">' + c.campaign_name + '</option>'
+                ).join('');
+        } else {
+            showAlert('Failed to load campaigns');
         }
     }
 
+    // Fix the loadLeads function - it was calling wrong endpoint
     async function loadLeads() {
         const campaignId = document.getElementById('leadscampaignSelect').value;
-        if (!campaignId) return;
+        if (!campaignId) {
+            document.getElementById('leadsTable').innerHTML = '<tr><td colspan="6" class="text-center">Select a campaign</td></tr>';
+            return;
+        }
 
-        const result = await apiCall('campaign-leads', 'GET');
+        const result = await apiCall('campaign-leads', 'GET', { campaign_id: campaignId });
         const container = document.getElementById('leadsTable');
+        
         if (result.success && result.data) {
+            if (result.data.length === 0) {
+                container.innerHTML = '<tr><td colspan="6" class="text-center">No leads found for this campaign</td></tr>';
+                return;
+            }
+            
             container.innerHTML = result.data.map(lead => 
-                '<tr><td>' + lead.lead_name + '</td><td>' + lead.lead_email + 
-                '</td><td>' + lead.lead_phone + '</td><td><span class="badge bg-info">' + lead.status + '</span></td>' +
+                '<tr><td>' + (lead.lead_name || 'N/A') + '</td>' +
+                '<td>' + (lead.lead_email || 'N/A') + '</td>' +
+                '<td>' + (lead.lead_phone || 'N/A') + '</td>' +
+                '<td><span class="badge ' + getLeadStatusClass(lead.status) + '">' + (lead.status || 'new') + '</span></td>' +
                 '<td>' + (lead.conversion_date ? new Date(lead.conversion_date).toLocaleDateString() : '-') + '</td>' +
-                '<td><button class="btn btn-sm btn-success" onclick="convertLead(' + lead.id + ')">Convert</button></td></tr>'
+                '<td>' +
+                    '<button class="btn btn-sm btn-success" onclick="convertLead(' + lead.id + ')" ' + 
+                    (lead.status === 'converted' ? 'disabled' : '') + '>' +
+                    '<i class="fas fa-check"></i> Convert</button>' +
+                '</td></tr>'
             ).join('');
+        } else {
+            container.innerHTML = '<tr><td colspan="6" class="text-center">Error loading leads</td></tr>';
+        }
+    }
+    // Add helper function for lead status badges
+    function getLeadStatusClass(status) {
+        switch(status) {
+            case 'new': return 'bg-info';
+            case 'contacted': return 'bg-warning';
+            case 'qualified': return 'bg-primary';
+            case 'converted': return 'bg-success';
+            default: return 'bg-secondary';
         }
     }
 
@@ -1251,6 +1396,7 @@
         new bootstrap.Modal(document.getElementById('addLeadModal')).show();
     }
 
+    // Fix the addLead function to include campaign_id
     async function addLead() {
         const campaignId = document.getElementById('leadscampaignSelect').value;
         const name = document.getElementById('leadName').value;
@@ -1258,7 +1404,7 @@
         const phone = document.getElementById('leadPhone').value;
 
         if (!campaignId || !name || !email) {
-            showAlert('Required fields missing');
+            showAlert('Campaign, name, and email are required');
             return;
         }
 
@@ -1281,45 +1427,83 @@
         }
     }
 
+    // Fix the convertLead function to match your database structure
     async function convertLead(leadId) {
         const conversionValue = prompt('Enter conversion value (₦):');
-        if (!conversionValue) return;
+        if (!conversionValue || isNaN(conversionValue) || parseFloat(conversionValue) <= 0) {
+            showAlert('Please enter a valid conversion amount');
+            return;
+        }
 
         const result = await apiCall('record-conversion', 'POST', {
             lead_id: leadId,
             conversion_value: parseFloat(conversionValue)
         });
+        
         if (result.success) {
-            showAlert('Conversion recorded', 'success');
+            showAlert('Lead converted successfully!', 'success');
+            // Reload leads for current campaign
             loadLeads();
+            // Update analytics if on that section
+            if (document.getElementById('analyticsCampaignSelect').value) {
+                loadCampaignAnalytics();
+            }
         } else {
-            showAlert(result.message);
+            showAlert(result.message || 'Failed to convert lead');
         }
     }
 
-    // Analytics Functions
+    // Fix the loadCampaignsForAnalytics function
     async function loadCampaignsForAnalytics() {
-        const result = await apiCall('campaigns', 'GET');
+        const result = await apiCall('campaigns-dropdown', 'GET');
         if (result.success && result.data) {
             const select = document.getElementById('analyticsCampaignSelect');
             select.innerHTML = '<option value="">Choose a campaign...</option>' + 
-                result.data.map(c => '<option value="' + c.id + '">' + c.campaign_name + '</option>').join('');
+                result.data.map(c => 
+                    '<option value="' + c.id + '">' + c.campaign_name + '</option>'
+                ).join('');
+        } else {
+            showAlert('Failed to load campaigns');
         }
     }
 
+    // Fix the loadCampaignAnalytics function
     async function loadCampaignAnalytics() {
         const campaignId = document.getElementById('analyticsCampaignSelect').value;
-        if (!campaignId) return;
+        if (!campaignId) {
+            // Clear analytics display
+            document.getElementById('analyticsBudget').textContent = '₦0';
+            document.getElementById('analyticsLeads').textContent = '0';
+            document.getElementById('analyticsConversions').textContent = '0';
+            document.getElementById('analyticsRate').textContent = '0%';
+            document.getElementById('analyticsRevenue').textContent = '₦0';
+            document.getElementById('analyticsROI').textContent = '0%';
+            return;
+        }
 
-        const result = await apiCall('campaign-analytics', 'GET');
+        const result = await apiCall('campaign-analytics', 'GET', { campaign_id: campaignId });
         if (result.success && result.data) {
             const data = result.data;
             document.getElementById('analyticsBudget').textContent = '₦' + data.budget.toLocaleString();
-            document.getElementById('analyticsLeads').textContent = data.total_leads;
-            document.getElementById('analyticsConversions').textContent = data.conversions;
-            document.getElementById('analyticsRate').textContent = data.conversion_rate + '%';
+            document.getElementById('analyticsLeads').textContent = data.total_leads.toLocaleString();
+            document.getElementById('analyticsConversions').textContent = data.conversions.toLocaleString();
+            document.getElementById('analyticsRate').textContent = data.conversion_rate.toFixed(1) + '%';
             document.getElementById('analyticsRevenue').textContent = '₦' + data.conversion_value.toLocaleString();
-            document.getElementById('analyticsROI').textContent = data.roi + '%';
+            document.getElementById('analyticsROI').textContent = data.roi.toFixed(1) + '%';
+            
+            // Optional: Show campaign name in a header
+            const analyticsSection = document.getElementById('analytics');
+            const existingHeader = analyticsSection.querySelector('.campaign-analytics-header');
+            if (existingHeader) existingHeader.remove();
+            
+            const header = document.createElement('h4');
+            header.className = 'campaign-analytics-header mt-3';
+            header.style.color = 'var(--primary)';
+            header.innerHTML = '<i class="fas fa-chart-line"></i> ' + data.campaign_name + 
+                            ' <small class="text-muted">(' + (data.period || '') + ')</small>';
+            document.querySelector('#analytics .metric-box').parentNode.insertBefore(header, document.querySelector('#analytics .metric-box'));
+        } else {
+            showAlert(result.message || 'Failed to load analytics');
         }
     }
 

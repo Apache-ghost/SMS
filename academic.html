@@ -23,20 +23,46 @@
       body {
         background: #f9fafb;
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        overflow-x: hidden;
       }
+
+      /* Fixed Navbar */
       .navbar {
         background: white;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         padding: 15px 30px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 70px;
+        z-index: 1000;
       }
+
+      /* Fixed Sidebar */
       .sidebar {
         background: white;
-        min-height: 100vh;
         padding: 20px;
         box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
-        position: sticky;
-        top: 0;
+        position: fixed;
+        top: 70px;
+        left: 0;
+        bottom: 0;
+        width: 250px;
+        overflow-y: auto;
+        z-index: 999;
       }
+
+      /* Main Content Area */
+      .main-content-wrapper {
+        margin-left: 250px;
+        margin-top: 70px;
+        padding: 30px;
+        min-height: calc(100vh - 70px);
+        overflow-y: auto;
+      }
+
+      /* Navigation Links */
       .sidebar .nav-link {
         color: #6b7280;
         padding: 12px 15px;
@@ -44,15 +70,25 @@
         border-radius: 8px;
         transition: all 0.3s;
         cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
       .sidebar .nav-link:hover,
       .sidebar .nav-link.active {
         background: var(--primary);
         color: white;
       }
-      .main-content {
-        padding: 30px;
+
+      /* Hide sections by default */
+      .section {
+        display: none;
       }
+      .section.active {
+        display: block;
+      }
+
+      /* Cards and Stats */
       .card {
         border: none;
         border-radius: 12px;
@@ -110,6 +146,8 @@
         background: #fee2e2;
         color: #991b1b;
       }
+
+      /* Tables */
       .table-responsive {
         background: white;
         border-radius: 12px;
@@ -130,16 +168,22 @@
         border-color: #e5e7eb;
         vertical-align: middle;
       }
+
+      /* Buttons */
       .btn-sm {
         padding: 6px 12px;
         font-size: 13px;
         border-radius: 6px;
       }
-      .modal-header {
+      .btn-primary {
         background: var(--primary);
-        color: white;
         border: none;
       }
+      .btn-primary:hover {
+        background: #1d4ed8;
+      }
+
+      /* Forms */
       .form-control,
       .form-select {
         border-radius: 8px;
@@ -151,17 +195,21 @@
         border-color: var(--primary);
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
       }
-      .btn-primary {
+
+      /* Modals */
+      .modal-header {
         background: var(--primary);
+        color: white;
         border: none;
       }
-      .btn-primary:hover {
-        background: #1d4ed8;
-      }
+
+      /* Alerts */
       .alert {
         border-radius: 8px;
         border: none;
       }
+
+      /* Grade Summary */
       .grade-summary {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -187,13 +235,45 @@
         color: var(--primary);
         margin: 10px 0;
       }
-      .hidden {
-        display: none;
-      }
+
+      /* Loading */
       .loading {
         text-align: center;
         padding: 40px;
         color: #6b7280;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 992px) {
+        .sidebar {
+          transform: translateX(-100%);
+          transition: transform 0.3s ease;
+        }
+        .sidebar.show {
+          transform: translateX(0);
+        }
+        .main-content-wrapper {
+          margin-left: 0;
+        }
+      }
+
+      /* Custom scrollbar */
+      .sidebar::-webkit-scrollbar,
+      .main-content-wrapper::-webkit-scrollbar {
+        width: 6px;
+      }
+      .sidebar::-webkit-scrollbar-track,
+      .main-content-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      .sidebar::-webkit-scrollbar-thumb,
+      .main-content-wrapper::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+      }
+      .sidebar::-webkit-scrollbar-thumb:hover,
+      .main-content-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
       }
     </style>
   </head>
@@ -213,446 +293,25 @@
           <button onclick="goBack()" class="btn btn-outline-secondary btn-sm">
             Back to Dashboard
           </button>
+          <!-- Mobile Menu Toggle -->
+          <button
+            class="btn btn-outline-primary d-lg-none ms-2"
+            onclick="toggleSidebar()"
+          >
+            <i class="fas fa-bars"></i>
+          </button>
         </div>
       </div>
     </nav>
 
-    <div class="container-fluid">
-      <div class="row">
-        <!-- Sidebar -->
-        <div class="col-md-2">
-          <div class="sidebar">
-            <h5 style="margin-bottom: 20px; color: #1f2937">Navigation</h5>
-            <div class="nav-link active" onclick="switchToSection('dashboard')">
-              <i class="fas fa-chart-line"></i> Dashboard
-            </div>
-            <div class="nav-link" onclick="switchToSection('enrollments')">
-              <i class="fas fa-book"></i> My Courses
-            </div>
-            <div class="nav-link" onclick="switchToSection('grades')">
-              <i class="fas fa-star"></i> Grades
-            </div>
-            <div class="nav-link" onclick="switchToSection('attendance')">
-              <i class="fas fa-calendar-check"></i> Attendance
-            </div>
-            <div class="nav-link" onclick="switchToSection('exams')">
-              <i class="fas fa-pencil-alt"></i> Exams
-            </div>
-            <hr />
-            <div id="adminSection" class="hidden">
-              <h6 style="color: #6b7280; margin: 20px 0 10px">Admin Panel</h6>
-              <div class="nav-link" onclick="switchToSection('programs')">
-                <i class="fas fa-graduation-cap"></i> Programs
-              </div>
-              <div class="nav-link" onclick="switchToSection('courses-mgmt')">
-                <i class="fas fa-laptop"></i> Courses
-              </div>
-              <div
-                class="nav-link"
-                onclick="switchToSection('enrollments-mgmt')"
-              >
-                <i class="fas fa-users"></i> Manage Enrollments
-              </div>
-              <div class="nav-link" onclick="switchToSection('grades-mgmt')">
-                <i class="fas fa-edit"></i> Manage Grades
-              </div>
-              <div
-                class="nav-link"
-                onclick="switchToSection('attendance-mgmt')"
-              >
-                <i class="fas fa-check"></i> Mark Attendance
-              </div>
-              <div class="nav-link" onclick="switchToSection('exams-mgmt')">
-                <i class="fas fa-calendar"></i> Schedule Exams
-              </div>
-            </div>
-          </div>
-        </div>
+    <!-- Sidebar - Dynamically populated -->
+    <div class="sidebar" id="sidebar">
+      <!-- Navigation will be loaded based on user role -->
+    </div>
 
-        <!-- Main Content -->
-        <div class="col-md-10">
-          <div class="main-content">
-            <!-- Alert Container -->
-            <div id="alertContainer"></div>
-
-            <!-- Dashboard Section -->
-            <div id="dashboard" class="section">
-              <h2 style="margin-bottom: 30px; color: #1f2937">Dashboard</h2>
-              <div class="row">
-                <div class="col-md-3">
-                  <div class="stat-card">
-                    <div class="stat-label">Enrolled Courses</div>
-                    <div class="stat-value" id="enrolledStat">0</div>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="stat-card">
-                    <div class="stat-label">Average Score</div>
-                    <div class="stat-value" id="averageStat">0</div>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="stat-card">
-                    <div class="stat-label">GPA</div>
-                    <div class="stat-value" id="gpaStat">0</div>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="stat-card">
-                    <div class="stat-label">Attendance %</div>
-                    <div class="stat-value" id="attendanceStat">0%</div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="card">
-                    <div class="card-header bg-transparent p-4 border-bottom">
-                      <h5 style="margin: 0">Recent Courses</h5>
-                    </div>
-                    <div class="card-body">
-                      <div id="recentCourses" class="loading">Loading...</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="card">
-                    <div class="card-header bg-transparent p-4 border-bottom">
-                      <h5 style="margin: 0">Quick Actions</h5>
-                    </div>
-                    <div class="card-body">
-                      <button
-                        onclick="switchToSection('enrollments')"
-                        class="btn btn-primary w-100 mb-2"
-                      >
-                        <i class="fas fa-book"></i> View Courses
-                      </button>
-                      <button
-                        onclick="switchToSection('grades')"
-                        class="btn btn-info w-100 mb-2"
-                      >
-                        <i class="fas fa-file-pdf"></i> View Transcript
-                      </button>
-                      <button
-                        onclick="switchToSection('attendance')"
-                        class="btn btn-warning w-100 mb-2"
-                      >
-                        <i class="fas fa-list"></i> Check Attendance
-                      </button>
-                      <button
-                        onclick="downloadTranscript()"
-                        class="btn btn-success w-100"
-                      >
-                        <i class="fas fa-download"></i> Download PDF
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Enrollments Section -->
-            <div id="enrollments" class="section hidden">
-              <h2 style="margin-bottom: 30px; color: #1f2937">
-                My Enrolled Courses
-              </h2>
-              <div id="enrollmentsList" class="loading">Loading...</div>
-            </div>
-
-            <!-- Grades Section -->
-            <div id="grades" class="section hidden">
-              <h2 style="margin-bottom: 30px; color: #1f2937">
-                Grades & Transcript
-              </h2>
-              <div class="card">
-                <div class="card-body">
-                  <div class="grade-summary" id="gradeSummary"></div>
-                  <div class="table-responsive">
-                    <table class="table">
-                      <thead>
-                        <tr>
-                          <th>Course Code</th>
-                          <th>Course Name</th>
-                          <th>Credits</th>
-                          <th>Midterm</th>
-                          <th>Final</th>
-                          <th>Assignment</th>
-                          <th>Total Score</th>
-                          <th>Grade</th>
-                        </tr>
-                      </thead>
-                      <tbody id="transcriptTable">
-                        <tr>
-                          <td colspan="8" class="text-center">Loading...</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Attendance Section -->
-            <div id="attendance" class="section hidden">
-              <h2 style="margin-bottom: 30px; color: #1f2937">
-                Attendance Summary
-              </h2>
-              <div id="attendanceList" class="loading">Loading...</div>
-            </div>
-
-            <!-- Exams Section -->
-            <div id="exams" class="section hidden">
-              <h2 style="margin-bottom: 30px; color: #1f2937">Examinations</h2>
-              <div id="examsList" class="loading">Loading...</div>
-            </div>
-
-            <!-- Programs Management -->
-            <div id="programs" class="section hidden">
-              <div
-                class="d-flex justify-content-between align-items-center mb-4"
-              >
-                <h2 style="color: #1f2937">Academic Programs</h2>
-                <button onclick="openAddProgramModal()" class="btn btn-primary">
-                  <i class="fas fa-plus"></i> Add Program
-                </button>
-              </div>
-              <div class="table-responsive">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>Program Name</th>
-                      <th>Code</th>
-                      <th>Duration</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="programsTable">
-                    <tr>
-                      <td colspan="4" class="text-center">Loading...</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Courses Management -->
-            <div id="courses-mgmt" class="section hidden">
-              <div
-                class="d-flex justify-content-between align-items-center mb-4"
-              >
-                <h2 style="color: #1f2937">Course Management</h2>
-                <button onclick="openAddCourseModal()" class="btn btn-primary">
-                  <i class="fas fa-plus"></i> Add Course
-                </button>
-              </div>
-              <div class="table-responsive">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>Course Code</th>
-                      <th>Course Name</th>
-                      <th>Credits</th>
-                      <th>Program</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="coursesTable">
-                    <tr>
-                      <td colspan="5" class="text-center">Loading...</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Enrollments Management -->
-            <div id="enrollments-mgmt" class="section hidden">
-              <h2 style="margin-bottom: 30px; color: #1f2937">
-                Manage Enrollments
-              </h2>
-              <div class="card">
-                <div class="card-body">
-                  <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label class="form-label">Select Course</label>
-                      <select
-                        id="courseSelect"
-                        class="form-select"
-                        onchange="loadCourseEnrollments()"
-                      >
-                        <option value="">Choose a course...</option>
-                      </select>
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Enroll Student</label>
-                      <div class="input-group">
-                        <select id="studentSelect" class="form-select">
-                          <option value="">Select student...</option>
-                        </select>
-                        <button
-                          class="btn btn-success"
-                          onclick="enrollStudent()"
-                        >
-                          Enroll
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="table-responsive">
-                    <table class="table">
-                      <thead>
-                        <tr>
-                          <th>Student Name</th>
-                          <th>Email</th>
-                          <th>Enrollment Date</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody id="courseEnrollmentsTable">
-                        <tr>
-                          <td colspan="5" class="text-center">
-                            Select a course to see enrollments
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Grades Management -->
-            <div id="grades-mgmt" class="section hidden">
-              <h2 style="margin-bottom: 30px; color: #1f2937">Manage Grades</h2>
-              <div class="card">
-                <div class="card-body">
-                  <div class="mb-3">
-                    <label class="form-label">Select Course</label>
-                    <select
-                      id="gradesCourseSelect"
-                      class="form-select"
-                      onchange="loadCourseForGrades()"
-                    >
-                      <option value="">Choose a course...</option>
-                    </select>
-                  </div>
-                  <div class="table-responsive">
-                    <table class="table">
-                      <thead>
-                        <tr>
-                          <th>Student Name</th>
-                          <th>Midterm</th>
-                          <th>Final</th>
-                          <th>Assignment</th>
-                          <th>Total</th>
-                          <th>Grade</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody id="gradesManagementTable">
-                        <tr>
-                          <td colspan="7" class="text-center">
-                            Select a course to manage grades
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Attendance Management -->
-            <div id="attendance-mgmt" class="section hidden">
-              <h2 style="margin-bottom: 30px; color: #1f2937">
-                Mark Attendance
-              </h2>
-              <div class="card">
-                <div class="card-body">
-                  <div class="row mb-3">
-                    <div class="col-md-4">
-                      <label class="form-label">Select Course</label>
-                      <select
-                        id="attendanceCourseSelect"
-                        class="form-select"
-                        onchange="loadCourseForAttendance()"
-                      >
-                        <option value="">Choose a course...</option>
-                      </select>
-                    </div>
-                    <div class="col-md-4">
-                      <label class="form-label">Attendance Date</label>
-                      <input
-                        type="date"
-                        id="attendanceDate"
-                        class="form-control"
-                      />
-                    </div>
-                  </div>
-                  <div class="table-responsive">
-                    <table class="table">
-                      <thead>
-                        <tr>
-                          <th>Student Name</th>
-                          <th>Email</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody id="attendanceManagementTable">
-                        <tr>
-                          <td colspan="4" class="text-center">
-                            Select a course to mark attendance
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <button
-                    onclick="saveAttendance()"
-                    class="btn btn-success mt-3"
-                  >
-                    Save Attendance
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Exam Scheduling -->
-            <div id="exams-mgmt" class="section hidden">
-              <div
-                class="d-flex justify-content-between align-items-center mb-4"
-              >
-                <h2 style="color: #1f2937">Schedule Exams</h2>
-                <button onclick="openAddExamModal()" class="btn btn-primary">
-                  <i class="fas fa-plus"></i> Schedule Exam
-                </button>
-              </div>
-              <div class="table-responsive">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>Course</th>
-                      <th>Date</th>
-                      <th>Time</th>
-                      <th>Type</th>
-                      <th>Location</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="examsManagementTable">
-                    <tr>
-                      <td colspan="6" class="text-center">Loading...</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- Main Content - Dynamically populated -->
+    <div class="main-content-wrapper" id="mainContent">
+      <!-- Content will be loaded based on user role -->
     </div>
 
     <!-- Add Program Modal -->
@@ -852,11 +511,447 @@
       let programsData = [];
       let coursesData = [];
 
+      // Student Navigation Template
+      const studentNav = `
+        <h5 style="margin-bottom: 20px; color: #1f2937">Student Navigation</h5>
+        <div class="nav-link active" onclick="switchToSection('dashboard')">
+          <i class="fas fa-chart-line"></i> Dashboard
+        </div>
+        <div class="nav-link" onclick="switchToSection('enrollments')">
+          <i class="fas fa-book"></i> My Courses
+        </div>
+        <div class="nav-link" onclick="switchToSection('grades')">
+          <i class="fas fa-star"></i> Grades
+        </div>
+        <div class="nav-link" onclick="switchToSection('attendance')">
+          <i class="fas fa-calendar-check"></i> Attendance
+        </div>
+        <div class="nav-link" onclick="switchToSection('exams')">
+          <i class="fas fa-pencil-alt"></i> Exams
+        </div>
+      `;
+
+      // Admin Navigation Template
+      const adminNav = `
+        <h5 style="margin-bottom: 20px; color: #1f2937">Admin Panel</h5>
+        <div class="nav-link active" onclick="switchToSection('admin-dashboard')">
+          <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+        </div>
+        <div class="nav-link" onclick="switchToSection('programs')">
+          <i class="fas fa-graduation-cap"></i> Programs
+        </div>
+        <div class="nav-link" onclick="switchToSection('courses-mgmt')">
+          <i class="fas fa-laptop"></i> Courses
+        </div>
+        <div class="nav-link" onclick="switchToSection('enrollments-mgmt')">
+          <i class="fas fa-users"></i> Manage Enrollments
+        </div>
+        <div class="nav-link" onclick="switchToSection('grades-view')">
+          <i class="fas fa-edit"></i> View Grades
+        </div>
+        <div class="nav-link" onclick="switchToSection('attendance-view')">
+          <i class="fas fa-check"></i> View Attendance
+        </div>
+        <div class="nav-link" onclick="switchToSection('exams-mgmt')">
+          <i class="fas fa-calendar"></i> Schedule Exams
+        </div>
+      `;
+
+      // Student Main Content Template
+      const studentContent = `
+        <div id="alertContainer"></div>
+
+        <!-- Student Dashboard -->
+        <div id="dashboard" class="section active">
+          <h2 style="margin-bottom: 30px; color: #1f2937">Student Dashboard</h2>
+          <div class="row">
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">Enrolled Courses</div>
+                <div class="stat-value" id="enrolledStat">0</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">Average Score</div>
+                <div class="stat-value" id="averageStat">0</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">GPA</div>
+                <div class="stat-value" id="gpaStat">0</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">Attendance %</div>
+                <div class="stat-value" id="attendanceStat">0%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header bg-transparent p-4 border-bottom">
+                  <h5 style="margin: 0">Recent Courses</h5>
+                </div>
+                <div class="card-body">
+                  <div id="recentCourses" class="loading">Loading...</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header bg-transparent p-4 border-bottom">
+                  <h5 style="margin: 0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                  <button onclick="switchToSection('enrollments')" class="btn btn-primary w-100 mb-2">
+                    <i class="fas fa-book"></i> View Courses
+                  </button>
+                  <button onclick="switchToSection('grades')" class="btn btn-info w-100 mb-2">
+                    <i class="fas fa-file-pdf"></i> View Transcript
+                  </button>
+                  <button onclick="switchToSection('attendance')" class="btn btn-warning w-100 mb-2">
+                    <i class="fas fa-list"></i> Check Attendance
+                  </button>
+                  <button onclick="downloadTranscript()" class="btn btn-success w-100">
+                    <i class="fas fa-download"></i> Download PDF
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student Enrollments -->
+        <div id="enrollments" class="section">
+          <h2 style="margin-bottom: 30px; color: #1f2937">My Enrolled Courses</h2>
+          <div id="enrollmentsList" class="loading">Loading...</div>
+        </div>
+
+        <!-- Student Grades -->
+        <div id="grades" class="section">
+          <h2 style="margin-bottom: 30px; color: #1f2937">Grades & Transcript</h2>
+          <div class="card">
+            <div class="card-body">
+              <div class="grade-summary" id="gradeSummary"></div>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Course Code</th>
+                      <th>Course Name</th>
+                      <th>Credits</th>
+                      <th>Midterm</th>
+                      <th>Final</th>
+                      <th>Assignment</th>
+                      <th>Total Score</th>
+                      <th>Grade</th>
+                    </tr>
+                  </thead>
+                  <tbody id="transcriptTable">
+                    <tr>
+                      <td colspan="8" class="text-center">Loading...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student Attendance -->
+        <div id="attendance" class="section">
+          <h2 style="margin-bottom: 30px; color: #1f2937">Attendance Summary</h2>
+          <div id="attendanceList" class="loading">Loading...</div>
+        </div>
+
+        <!-- Student Exams -->
+        <div id="exams" class="section">
+          <h2 style="margin-bottom: 30px; color: #1f2937">Examinations</h2>
+          <div id="examsList" class="loading">Loading...</div>
+        </div>
+      `;
+
+      // Admin Main Content Template
+      const adminContent = `
+        <div id="alertContainer"></div>
+
+        <!-- Admin Dashboard -->
+        <div id="admin-dashboard" class="section active">
+          <h2 style="margin-bottom: 30px; color: #1f2937">Admin Dashboard</h2>
+          <div class="row">
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">Total Programs</div>
+                <div class="stat-value" id="totalPrograms">0</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">Total Courses</div>
+                <div class="stat-value" id="totalCourses">0</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">Total Enrollments</div>
+                <div class="stat-value" id="totalEnrollments">0</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">Active Students</div>
+                <div class="stat-value" id="activeStudents">0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-md-12">
+              <div class="card">
+                <div class="card-header bg-transparent p-4 border-bottom">
+                  <h5 style="margin: 0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-3 mb-3">
+                      <button onclick="switchToSection('programs')" class="btn btn-primary w-100">
+                        <i class="fas fa-graduation-cap"></i> Manage Programs
+                      </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                      <button onclick="switchToSection('courses-mgmt')" class="btn btn-info w-100">
+                        <i class="fas fa-laptop"></i> Manage Courses
+                      </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                      <button onclick="switchToSection('enrollments-mgmt')" class="btn btn-warning w-100">
+                        <i class="fas fa-users"></i> Manage Enrollments
+                      </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                      <button onclick="switchToSection('exams-mgmt')" class="btn btn-success w-100">
+                        <i class="fas fa-calendar"></i> Schedule Exams
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Programs Management -->
+        <div id="programs" class="section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 style="color: #1f2937">Academic Programs</h2>
+            <button onclick="openAddProgramModal()" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Add Program
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Program Name</th>
+                  <th>Code</th>
+                  <th>Duration</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="programsTable">
+                <tr>
+                  <td colspan="4" class="text-center">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Admin Courses Management -->
+        <div id="courses-mgmt" class="section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 style="color: #1f2937">Course Management</h2>
+            <button onclick="openAddCourseModal()" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Add Course
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Course Code</th>
+                  <th>Course Name</th>
+                  <th>Credits</th>
+                  <th>Program</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="coursesTable">
+                <tr>
+                  <td colspan="5" class="text-center">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Admin Enrollments Management -->
+        <div id="enrollments-mgmt" class="section">
+          <h2 style="margin-bottom: 30px; color: #1f2937">Manage Enrollments</h2>
+          <div class="card">
+            <div class="card-body">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Select Course</label>
+                  <select id="courseSelect" class="form-select" onchange="loadCourseEnrollments()">
+                    <option value="">Choose a course...</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Enroll Student</label>
+                  <div class="input-group">
+                    <select id="studentSelect" class="form-select">
+                      <option value="">Select student...</option>
+                    </select>
+                    <button class="btn btn-success" onclick="enrollStudent()">Enroll</button>
+                  </div>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Student Name</th>
+                      <th>Email</th>
+                      <th>Enrollment Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="courseEnrollmentsTable">
+                    <tr>
+                      <td colspan="5" class="text-center">Select a course to see enrollments</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin View Grades (Read-only) -->
+        <div id="grades-view" class="section">
+          <h2 style="margin-bottom: 30px; color: #1f2937">View Grades</h2>
+          <div class="card">
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label">Select Course</label>
+                <select id="gradesCourseSelect" class="form-select" onchange="loadCourseForGradesView()">
+                  <option value="">Choose a course...</option>
+                </select>
+              </div>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Student Name</th>
+                      <th>Midterm</th>
+                      <th>Final</th>
+                      <th>Assignment</th>
+                      <th>Total</th>
+                      <th>Grade</th>
+                    </tr>
+                  </thead>
+                  <tbody id="gradesViewTable">
+                    <tr>
+                      <td colspan="6" class="text-center">Select a course to view grades</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin View Attendance (Read-only) -->
+        <div id="attendance-view" class="section">
+          <h2 style="margin-bottom: 30px; color: #1f2937">View Attendance</h2>
+          <div class="card">
+            <div class="card-body">
+              <div class="row mb-3">
+                <div class="col-md-4">
+                  <label class="form-label">Select Course</label>
+                  <select id="attendanceViewCourseSelect" class="form-select" onchange="loadCourseForAttendanceView()">
+                    <option value="">Choose a course...</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Select Date</label>
+                  <input type="date" id="attendanceViewDate" class="form-control" onchange="loadCourseForAttendanceView()">
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Student Name</th>
+                      <th>Email</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody id="attendanceViewTable">
+                    <tr>
+                      <td colspan="4" class="text-center">Select a course and date to view attendance</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Exam Scheduling -->
+        <div id="exams-mgmt" class="section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 style="color: #1f2937">Schedule Exams</h2>
+            <button onclick="openAddExamModal()" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Schedule Exam
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Course</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Type</th>
+                  <th>Location</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="examsManagementTable">
+                <tr>
+                  <td colspan="6" class="text-center">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      // Initialize on load
       window.addEventListener("load", async function () {
         await loadUserData();
-        await loadDashboard();
       });
 
+      // Load user data and setup UI based on role
       async function loadUserData() {
         try {
           const response = await fetch(
@@ -872,55 +967,103 @@
               " (" +
               currentUser.role +
               ")";
-            if (["admin", "staff", "faculty"].includes(currentUser.role)) {
-              document
-                .getElementById("adminSection")
-                .classList.remove("hidden");
-            }
+            setupUIForRole(currentUser.role);
           }
         } catch (error) {
           console.error("Error loading user:", error);
         }
       }
 
-      function showAlert(message, type = "danger") {
-        const alertContainer = document.getElementById("alertContainer");
-        const alertClass =
-          type === "success" ? "alert-success" : "alert-danger";
-        alertContainer.innerHTML =
-          '<div class="alert ' +
-          alertClass +
-          ' alert-dismissible fade show">' +
-          message +
-          '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
-        setTimeout(() => (alertContainer.innerHTML = ""), 5000);
+      // Setup UI based on user role
+      function setupUIForRole(role) {
+        const sidebar = document.getElementById("sidebar");
+        const mainContent = document.getElementById("mainContent");
+
+        if (role === "admin") {
+          sidebar.innerHTML = adminNav;
+          mainContent.innerHTML = adminContent;
+          loadAdminDashboard();
+        } else {
+          sidebar.innerHTML = studentNav;
+          mainContent.innerHTML = studentContent;
+          loadStudentDashboard();
+        }
       }
 
-      function switchToSection(sectionId) {
+      // Toggle sidebar for mobile
+      function toggleSidebar() {
+        document.querySelector(".sidebar").classList.toggle("show");
+      }
+
+      // Switch between sections
+      // Switch between sections
+      function switchToSection(sectionId, event = null) {
         const sections = document.querySelectorAll(".section");
         const navLinks = document.querySelectorAll(".sidebar .nav-link");
 
-        sections.forEach((s) => s.classList.add("hidden"));
+        // Hide all sections
+        sections.forEach((s) => s.classList.remove("active"));
+
+        // Remove active class from all navigation items
         navLinks.forEach((l) => l.classList.remove("active"));
 
-        document.getElementById(sectionId).classList.remove("hidden");
-        event.target.closest(".nav-link").classList.add("active");
+        // Find and activate the corresponding sidebar link
+        const targetLink = Array.from(navLinks).find((link) => {
+          const onclickAttr = link.getAttribute("onclick");
+          return onclickAttr && onclickAttr.includes(sectionId);
+        });
 
-        if (sectionId === "enrollments") loadEnrollments();
+        if (targetLink) {
+          targetLink.classList.add("active");
+        }
+
+        // If called from a sidebar click (with event), activate that link too
+        if (event && event.target.closest) {
+          try {
+            const clickedLink = event.target.closest(".nav-link");
+            if (clickedLink && !clickedLink.classList.contains("active")) {
+              clickedLink.classList.add("active");
+            }
+          } catch (e) {
+            // Ignore if event.target doesn't have closest method
+          }
+        }
+
+        // Show the target section
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+          targetSection.classList.add("active");
+          loadSectionData(sectionId);
+        }
+
+        // Close sidebar on mobile
+        if (window.innerWidth < 992) {
+          document.querySelector(".sidebar").classList.remove("show");
+        }
+
+        // Scroll to top of content
+        document.getElementById("mainContent").scrollTop = 0;
+      }
+      // Load data for specific sections
+      function loadSectionData(sectionId) {
+        // Student sections
+        if (sectionId === "dashboard") loadStudentDashboard();
+        else if (sectionId === "enrollments") loadEnrollments();
         else if (sectionId === "grades") loadGrades();
         else if (sectionId === "attendance") loadAttendance();
         else if (sectionId === "exams") loadExams();
+        // Admin sections
+        else if (sectionId === "admin-dashboard") loadAdminDashboard();
         else if (sectionId === "programs") loadPrograms();
         else if (sectionId === "courses-mgmt") loadCourses();
-        else if (sectionId === "enrollments-mgmt") loadEnrollments();
-        else if (sectionId === "grades-mgmt") loadGrades();
-        else if (sectionId === "attendance-mgmt") loadAttendance();
-        else if (sectionId === "exams-mgmt") loadExams();
-      }
-      function goBack() {
-        window.location.href = "/SMS/index.php";
+        else if (sectionId === "enrollments-mgmt") loadCoursesForEnroll();
+        else if (sectionId === "grades-view") loadCoursesForGradesView();
+        else if (sectionId === "attendance-view")
+          loadCoursesForAttendanceView();
+        else if (sectionId === "exams-mgmt") loadAllExams();
       }
 
+      // API Call helper
       async function apiCall(action, method, data = null) {
         try {
           const options = {
@@ -939,25 +1082,74 @@
         }
       }
 
-      async function loadDashboard() {
+      // Show alert
+      function showAlert(message, type = "danger") {
+        const alertContainer = document.getElementById("alertContainer");
+        const alertClass =
+          type === "success" ? "alert-success" : "alert-danger";
+        alertContainer.innerHTML = `
+          <div class="alert ${alertClass} alert-dismissible fade show">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        `;
+        setTimeout(() => (alertContainer.innerHTML = ""), 5000);
+      }
+
+      // Go back to main dashboard
+      function goBack() {
+        window.location.href = "/SMS/index.php";
+      }
+
+      // Load admin dashboard statistics
+      async function loadAdminDashboard() {
+        try {
+          const programsRes = await apiCall("programs", "GET");
+          if (programsRes.success) {
+            document.getElementById("totalPrograms").textContent =
+              programsRes.data?.length || 0;
+          }
+
+          const coursesRes = await apiCall("courses", "GET");
+          if (coursesRes.success) {
+            document.getElementById("totalCourses").textContent =
+              coursesRes.data?.length || 0;
+          }
+
+          const enrollRes = await apiCall("total-enrollments", "GET");
+          if (enrollRes.success) {
+            document.getElementById("totalEnrollments").textContent =
+              enrollRes.total || 0;
+          }
+
+          // Load active students using the new API
+          const activeRes = await apiCall("active-students", "GET");
+          if (activeRes.success) {
+            document.getElementById("activeStudents").textContent =
+              activeRes.total || 0;
+          }
+        } catch (error) {
+          console.error("Error loading admin dashboard:", error);
+        }
+      }
+
+      // Load student dashboard statistics
+      async function loadStudentDashboard() {
         const result = await apiCall("dashboard-stats", "GET");
         if (result.success && result.data) {
-          if (currentUser.role === "student") {
-            document.getElementById("enrolledStat").textContent =
-              result.data.enrolled_courses || 0;
-            document.getElementById("averageStat").textContent = (
-              result.data.average_score || 0
-            ).toFixed(2);
-          } else {
-            document.getElementById("enrolledStat").textContent =
-              result.data.total_courses || 0;
-            document.getElementById("averageStat").textContent =
-              result.data.total_students || 0;
-          }
+          document.getElementById("enrolledStat").textContent =
+            result.data.enrolled_courses || 0;
+          document.getElementById("averageStat").textContent = (
+            result.data.average_score || 0
+          ).toFixed(2);
+          document.getElementById("gpaStat").textContent = result.data.gpa || 0;
+          document.getElementById("attendanceStat").textContent =
+            (result.data.attendance_percentage || 0) + "%";
         }
         await loadRecentCourses();
       }
 
+      // Load recent courses for student
       async function loadRecentCourses() {
         const result = await apiCall("student-enrollments", "GET");
         const container = document.getElementById("recentCourses");
@@ -966,11 +1158,7 @@
             .slice(0, 3)
             .map(
               (c) =>
-                '<div class="course-card"><strong>' +
-                c.course_code +
-                "</strong> - " +
-                c.course_name +
-                "</div>"
+                `<div class="course-card"><strong>${c.course_code}</strong> - ${c.course_name}</div>`
             )
             .join("");
         } else {
@@ -979,6 +1167,7 @@
         }
       }
 
+      // Load student enrollments
       async function loadEnrollments() {
         const result = await apiCall("student-enrollments", "GET");
         const container = document.getElementById("enrollmentsList");
@@ -988,13 +1177,7 @@
             result.data
               .map(
                 (c) =>
-                  '<div class="col-md-6"><div class="course-card"><h6>' +
-                  c.course_code +
-                  "</h6><p>" +
-                  c.course_name +
-                  "</p><small>Credits: " +
-                  c.credits +
-                  "</small></div></div>"
+                  `<div class="col-md-6"><div class="course-card"><h6>${c.course_code}</h6><p>${c.course_name}</p><small>Credits: ${c.credits}</small></div></div>`
               )
               .join("") +
             "</div>";
@@ -1004,38 +1187,33 @@
         }
       }
 
+      // Load student grades
       async function loadGrades() {
         const result = await apiCall("student-transcript", "GET");
         const container = document.getElementById("transcriptTable");
         if (result.success && result.data && result.data.length > 0) {
-          document.getElementById("gradeSummary").innerHTML =
-            '<div class="grade-box"><div class="label">Total Credits</div><div class="value">' +
-            result.total_credits +
-            '</div></div><div class="grade-box"><div class="label">GPA</div><div class="value">' +
-            result.gpa +
-            "</div></div>";
+          document.getElementById("gradeSummary").innerHTML = `
+            <div class="grade-box"><div class="label">Total Credits</div><div class="value">${result.total_credits}</div></div>
+            <div class="grade-box"><div class="label">GPA</div><div class="value">${result.gpa}</div></div>
+          `;
           container.innerHTML = result.data
             .map(
-              (g) =>
-                "<tr><td>" +
-                g.course_code +
-                "</td><td>" +
-                g.course_name +
-                "</td><td>" +
-                g.credits +
-                "</td><td>" +
-                (g.midterm_score || "-") +
-                "</td><td>" +
-                (g.final_score || "-") +
-                "</td><td>" +
-                (g.assignment_score || "-") +
-                "</td><td><strong>" +
-                (g.total_score ? g.total_score.toFixed(2) : "-") +
-                '</strong></td><td><span class="badge badge-grade grade-' +
-                (g.grade || "f").toLowerCase() +
-                '">' +
-                (g.grade || "-") +
-                "</span></td></tr>"
+              (g) => `
+            <tr>
+              <td>${g.course_code}</td>
+              <td>${g.course_name}</td>
+              <td>${g.credits}</td>
+              <td>${g.midterm_score || "-"}</td>
+              <td>${g.final_score || "-"}</td>
+              <td>${g.assignment_score || "-"}</td>
+              <td><strong>${
+                g.total_score ? g.total_score.toFixed(2) : "-"
+              }</strong></td>
+              <td><span class="badge badge-grade grade-${(
+                g.grade || "f"
+              ).toLowerCase()}">${g.grade || "-"}</span></td>
+            </tr>
+          `
             )
             .join("");
         } else {
@@ -1044,6 +1222,7 @@
         }
       }
 
+      // Load student attendance
       async function loadAttendance() {
         const result = await apiCall("student-enrollments", "GET");
         const container = document.getElementById("attendanceList");
@@ -1058,18 +1237,21 @@
             const data = await res.json();
             if (data.success) {
               const att = data.data;
-              html +=
-                '<div class="col-md-6"><div class="card mb-3"><div class="card-body"><h6>' +
-                enrollment.course_code +
-                '</h6><div class="grade-summary"><div class="grade-box"><div class="label">Present</div><div class="value" style="color: var(--success);">' +
-                att.present +
-                '</div></div><div class="grade-box"><div class="label">Absent</div><div class="value" style="color: var(--danger);">' +
-                att.absent +
-                '</div></div><div class="grade-box"><div class="label">Late</div><div class="value" style="color: var(--warning);">' +
-                att.late +
-                '</div></div><div class="grade-box"><div class="label">Percentage</div><div class="value">' +
-                att.percentage +
-                "%</div></div></div></div></div>";
+              html += `
+                <div class="col-md-6">
+                  <div class="card mb-3">
+                    <div class="card-body">
+                      <h6>${enrollment.course_code}</h6>
+                      <div class="grade-summary">
+                        <div class="grade-box"><div class="label">Present</div><div class="value" style="color: var(--success);">${att.present}</div></div>
+                        <div class="grade-box"><div class="label">Absent</div><div class="value" style="color: var(--danger);">${att.absent}</div></div>
+                        <div class="grade-box"><div class="label">Late</div><div class="value" style="color: var(--warning);">${att.late}</div></div>
+                        <div class="grade-box"><div class="label">Percentage</div><div class="value">${att.percentage}%</div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
             }
           }
           html += "</div>";
@@ -1080,6 +1262,7 @@
         }
       }
 
+      // Load student exams
       async function loadExams() {
         const result = await apiCall("student-enrollments", "GET");
         const container = document.getElementById("examsList");
@@ -1094,18 +1277,17 @@
             const data = await res.json();
             if (data.success && data.data && data.data.length > 0) {
               data.data.forEach((exam) => {
-                html +=
-                  "<tr><td>" +
-                  course.course_code +
-                  "</td><td>" +
-                  new Date(exam.exam_date).toLocaleDateString() +
-                  "</td><td>" +
-                  exam.exam_time +
-                  '</td><td><span class="badge bg-info">' +
-                  exam.exam_type +
-                  "</span></td><td>" +
-                  exam.location +
-                  "</td></tr>";
+                html += `
+                  <tr>
+                    <td>${course.course_code}</td>
+                    <td>${new Date(exam.exam_date).toLocaleDateString()}</td>
+                    <td>${exam.exam_time}</td>
+                    <td><span class="badge bg-info">${
+                      exam.exam_type
+                    }</span></td>
+                    <td>${exam.location}</td>
+                  </tr>
+                `;
               });
             }
           }
@@ -1118,6 +1300,7 @@
         }
       }
 
+      // Load programs for admin
       async function loadPrograms() {
         const result = await apiCall("programs", "GET");
         const container = document.getElementById("programsTable");
@@ -1127,28 +1310,24 @@
           select.innerHTML =
             '<option value="">Select a program...</option>' +
             result.data
-              .map(
-                (p) =>
-                  '<option value="' + p.id + '">' + p.program_name + "</option>"
-              )
+              .map((p) => `<option value="${p.id}">${p.program_name}</option>`)
               .join("");
           container.innerHTML = result.data
             .map(
-              (p) =>
-                "<tr><td>" +
-                p.program_name +
-                "</td><td>" +
-                p.program_code +
-                "</td><td>" +
-                p.duration_years +
-                ' years</td><td><button class="btn btn-sm btn-danger" onclick="deleteProgram(' +
-                p.id +
-                ')">Delete</button></td></tr>'
+              (p) => `
+            <tr>
+              <td>${p.program_name}</td>
+              <td>${p.program_code}</td>
+              <td>${p.duration_years} years</td>
+              <td><button class="btn btn-sm btn-danger" onclick="deleteProgram(${p.id})">Delete</button></td>
+            </tr>
+          `
             )
             .join("");
         }
       }
 
+      // Add program
       async function addProgram() {
         const name = document.getElementById("programName").value;
         const code = document.getElementById("programCode").value;
@@ -1175,6 +1354,7 @@
         }
       }
 
+      // Delete program
       async function deleteProgram(programId) {
         if (confirm("Delete this program?")) {
           const deleteUrl =
@@ -1191,10 +1371,12 @@
         }
       }
 
+      // Open add program modal
       function openAddProgramModal() {
         new bootstrap.Modal(document.getElementById("addProgramModal")).show();
       }
 
+      // Load courses for admin
       async function loadCourses() {
         const result = await apiCall("courses", "GET");
         const container = document.getElementById("coursesTable");
@@ -1206,29 +1388,28 @@
             result.data
               .map(
                 (c) =>
-                  '<option value="' + c.id + '">' + c.program_name ||
-                  "N/A" + "</option>"
+                  `<option value="${c.id}">${c.program_name || "N/A"}</option>`
               )
               .join("");
           container.innerHTML = result.data
             .map(
-              (c) =>
-                "<tr><td>" +
-                c.course_code +
-                "</td><td>" +
-                c.course_name +
-                "</td><td>" +
-                c.credits +
-                "</td><td>" +
-                (c.program_name || "N/A") +
-                '</td><td><button class="btn btn-sm btn-danger" onclick="deleteCourse(' +
-                c.id +
-                ')">Delete</button></td></tr>'
+              (c) => `
+            <tr>
+              <td>${c.course_code}</td>
+              <td>${c.course_name}</td>
+              <td>${c.credits}</td>
+              <td>${c.program_name || "N/A"}</td>
+              <td><button class="btn btn-sm btn-danger" onclick="deleteCourse(${
+                c.id
+              })">Delete</button></td>
+            </tr>
+          `
             )
             .join("");
         }
       }
 
+      // Add course
       async function addCourse() {
         const code = document.getElementById("courseCode").value;
         const name = document.getElementById("courseName").value;
@@ -1257,6 +1438,7 @@
         }
       }
 
+      // Delete course
       async function deleteCourse(courseId) {
         if (confirm("Delete this course?")) {
           const deleteUrl =
@@ -1273,55 +1455,155 @@
         }
       }
 
+      // Open add course modal
       function openAddCourseModal() {
         loadPrograms();
         new bootstrap.Modal(document.getElementById("addCourseModal")).show();
       }
 
+      // Load courses for enrollment management
       async function loadCoursesForEnroll() {
-        const result = await apiCall("courses", "GET");
-        if (result.success && result.data) {
-          const select = document.getElementById("courseSelect");
-          const studentSelect = document.getElementById("studentSelect");
-          select.innerHTML =
-            '<option value="">Choose a course...</option>' +
-            result.data
-              .map(
-                (c) =>
-                  '<option value="' +
-                  c.id +
-                  '">' +
-                  c.course_code +
-                  " - " +
-                  c.course_name +
-                  "</option>"
-              )
-              .join("");
+        console.log("Loading courses and students for enrollment...");
 
-          // Load all students
-          const usersRes = await fetch("/SMS/api/auth.php?action=all-users", {
-            credentials: "include",
-          });
-          if (usersRes.ok) {
-            const usersData = await usersRes.json();
-            if (usersData.success && usersData.data) {
-              studentSelect.innerHTML =
-                '<option value="">Select student...</option>' +
-                usersData.data
-                  .map(
-                    (u) =>
-                      '<option value="' +
-                      u.id +
-                      '">' +
-                      u.full_name +
-                      "</option>"
-                  )
-                  .join("");
-            }
+        try {
+          // 1. Load courses
+          const coursesResult = await apiCall("courses", "GET");
+
+          if (!coursesResult.success) {
+            showAlert(
+              "Failed to load courses: " +
+                (coursesResult.message || "Unknown error")
+            );
+            return;
           }
+
+          const courseSelect = document.getElementById("courseSelect");
+          const studentSelect = document.getElementById("studentSelect");
+
+          // Populate courses dropdown
+          if (coursesResult.data && coursesResult.data.length > 0) {
+            courseSelect.innerHTML =
+              '<option value="">Choose a course...</option>' +
+              coursesResult.data
+                .map(
+                  (c) =>
+                    `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`
+                )
+                .join("");
+          } else {
+            courseSelect.innerHTML =
+              '<option value="">No courses available</option>';
+            showAlert("No courses found. Please add courses first.", "warning");
+          }
+
+          // 2. Load students using your admin API
+          console.log("Loading students from admin API...");
+
+          try {
+            // Use fetch directly since apiCall() is for academic.php
+            const response = await fetch(
+              "/SMS/api/admin.php?action=all-users",
+              {
+                method: "GET",
+                credentials: "include",
+                headers: {
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                },
+              }
+            );
+
+            console.log("Admin API response status:", response.status);
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log("Admin API response data:", data);
+
+              if (data.success && data.data) {
+                // Filter only students
+                const students = data.data.filter(
+                  (user) => user.role === "student"
+                );
+                console.log("Filtered students:", students);
+
+                if (students.length > 0) {
+                  studentSelect.innerHTML =
+                    '<option value="">Select student...</option>' +
+                    students
+                      .map((s) => {
+                        const displayName =
+                          s.full_name || s.username || `Student ${s.id}`;
+                        const email = s.email ? `(${s.email})` : "";
+                        return `<option value="${s.id}">${displayName} ${email}</option>`;
+                      })
+                      .join("");
+
+                  console.log(
+                    `Loaded ${students.length} students successfully`
+                  );
+                } else {
+                  studentSelect.innerHTML =
+                    '<option value="">No students found</option>';
+                  console.warn(
+                    "No students found in user list. All users:",
+                    data.data
+                  );
+                  showAlert(
+                    "No students found in the system. Please add students first.",
+                    "warning"
+                  );
+                }
+              } else {
+                studentSelect.innerHTML =
+                  '<option value="">Error loading students</option>';
+                console.error("Admin API returned error:", data);
+                showAlert(
+                  "Failed to load students: " +
+                    (data.message || "Unknown error"),
+                  "danger"
+                );
+              }
+            } else {
+              studentSelect.innerHTML = '<option value="">API Error</option>';
+              console.error(
+                "Admin API request failed with status:",
+                response.status
+              );
+
+              // Check if it's a permission error
+              if (response.status === 403) {
+                showAlert(
+                  "Permission denied. Only admin can view students list.",
+                  "danger"
+                );
+              } else if (response.status === 401) {
+                showAlert(
+                  "Authentication required. Please login again.",
+                  "danger"
+                );
+              } else {
+                showAlert(
+                  "Failed to load students. Server error: " + response.status,
+                  "danger"
+                );
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching students:", error);
+            studentSelect.innerHTML =
+              '<option value="">Connection error</option>';
+            showAlert("Error connecting to server: " + error.message, "danger");
+          }
+        } catch (error) {
+          console.error("Error in loadCoursesForEnroll:", error);
+          showAlert(
+            "Error loading enrollment data: " + error.message,
+            "danger"
+          );
         }
       }
 
+      // Load course enrollments
       async function loadCourseEnrollments() {
         const courseId = document.getElementById("courseSelect").value;
         const container = document.getElementById("courseEnrollmentsTable");
@@ -1337,18 +1619,17 @@
         if (result.success && result.data && result.data.length > 0) {
           container.innerHTML = result.data
             .map(
-              (e) =>
-                "<tr><td>" +
-                e.full_name +
-                "</td><td>" +
-                e.email +
-                "</td><td>" +
-                new Date(e.enrollment_date).toLocaleDateString() +
-                '</td><td><span class="badge bg-success">' +
-                e.status +
-                '</span></td><td><button class="btn btn-sm btn-danger" onclick="unenrollStudent(' +
-                e.id +
-                ')">Unenroll</button></td></tr>'
+              (e) => `
+            <tr>
+              <td>${e.full_name}</td>
+              <td>${e.email}</td>
+              <td>${new Date(e.enrollment_date).toLocaleDateString()}</td>
+              <td><span class="badge bg-success">${e.status}</span></td>
+              <td><button class="btn btn-sm btn-danger" onclick="unenrollStudent(${
+                e.id
+              })">Unenroll</button></td>
+            </tr>
+          `
             )
             .join("");
         } else {
@@ -1357,6 +1638,7 @@
         }
       }
 
+      // Enroll student
       async function enrollStudent() {
         const courseId = document.getElementById("courseSelect").value;
         const studentId = document.getElementById("studentSelect").value;
@@ -1377,6 +1659,7 @@
         }
       }
 
+      // Unenroll student
       async function unenrollStudent(enrollmentId) {
         if (confirm("Unenroll this student?")) {
           const unenrollUrl =
@@ -1393,7 +1676,8 @@
         }
       }
 
-      async function loadCoursesForGrades() {
+      // Load courses for grades view (admin)
+      async function loadCoursesForGradesView() {
         const result = await apiCall("courses", "GET");
         if (result.success && result.data) {
           const select = document.getElementById("gradesCourseSelect");
@@ -1402,155 +1686,114 @@
             result.data
               .map(
                 (c) =>
-                  '<option value="' +
-                  c.id +
-                  '">' +
-                  c.course_code +
-                  " - " +
-                  c.course_name +
-                  "</option>"
+                  `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`
               )
               .join("");
         }
       }
 
-      async function loadCourseForGrades() {
+      // Load course for grades view (admin)
+      async function loadCourseForGradesView() {
         const courseId = document.getElementById("gradesCourseSelect").value;
-        const container = document.getElementById("gradesManagementTable");
+        const container = document.getElementById("gradesViewTable");
         if (!courseId) {
           container.innerHTML =
-            '<tr><td colspan="7" class="text-center">Select a course to manage grades</td></tr>';
+            '<tr><td colspan="6" class="text-center">Select a course to view grades</td></tr>';
           return;
         }
+
         const enrollUrl =
           API_BASE + "?action=course-enrollments&course_id=" + courseId;
         const response = await fetch(enrollUrl, { credentials: "include" });
         const result = await response.json();
+
         if (result.success && result.data && result.data.length > 0) {
           container.innerHTML = result.data
             .map(
-              (e) =>
-                "<tr><td>" +
-                e.full_name +
-                '</td><td><input type="number" class="form-control form-control-sm" placeholder="0" max="100" data-enrollment="' +
-                e.id +
-                '" data-type="midterm"></td><td><input type="number" class="form-control form-control-sm" placeholder="0" max="100" data-enrollment="' +
-                e.id +
-                '" data-type="final"></td><td><input type="number" class="form-control form-control-sm" placeholder="0" max="100" data-enrollment="' +
-                e.id +
-                '" data-type="assignment"></td><td><span class="grade-total" data-enrollment="' +
-                e.id +
-                '">-</span></td><td><span class="grade-letter" data-enrollment="' +
-                e.id +
-                '">-</span></td><td><button class="btn btn-sm btn-primary" onclick="submitGrade(' +
-                e.id +
-                ')">Submit</button></td></tr>'
+              (e) => `
+            <tr>
+              <td>${e.full_name}</td>
+              <td>${e.midterm_score || "-"}</td>
+              <td>${e.final_score || "-"}</td>
+              <td>${e.assignment_score || "-"}</td>
+              <td><strong>${
+                e.total_score ? e.total_score.toFixed(2) : "-"
+              }</strong></td>
+              <td><span class="badge badge-grade grade-${(
+                e.grade || "f"
+              ).toLowerCase()}">${e.grade || "-"}</span></td>
+            </tr>
+          `
             )
             .join("");
-        }
-      }
-
-      async function submitGrade(enrollmentId) {
-        const midterm = document.querySelector(
-          '[data-enrollment="' + enrollmentId + '"][data-type="midterm"]'
-        ).value;
-        const final = document.querySelector(
-          '[data-enrollment="' + enrollmentId + '"][data-type="final"]'
-        ).value;
-        const assignment = document.querySelector(
-          '[data-enrollment="' + enrollmentId + '"][data-type="assignment"]'
-        ).value;
-        if (!midterm || !final || !assignment) {
-          showAlert("Please fill all scores");
-          return;
-        }
-        const result = await apiCall("add-grade", "POST", {
-          enrollment_id: enrollmentId,
-          midterm_score: parseFloat(midterm),
-          final_score: parseFloat(final),
-          assignment_score: parseFloat(assignment),
-        });
-        if (result.success) {
-          showAlert("Grade submitted successfully", "success");
-          loadCourseForGrades();
         } else {
-          showAlert(result.message);
+          container.innerHTML =
+            '<tr><td colspan="6" class="text-center">No grades available for this course</td></tr>';
         }
       }
 
-      async function loadCoursesForAttendance() {
+      // Load courses for attendance view (admin)
+      async function loadCoursesForAttendanceView() {
         const result = await apiCall("courses", "GET");
         if (result.success && result.data) {
-          const select = document.getElementById("attendanceCourseSelect");
+          const select = document.getElementById("attendanceViewCourseSelect");
           select.innerHTML =
             '<option value="">Choose a course...</option>' +
             result.data
               .map(
                 (c) =>
-                  '<option value="' +
-                  c.id +
-                  '">' +
-                  c.course_code +
-                  " - " +
-                  c.course_name +
-                  "</option>"
+                  `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`
               )
               .join("");
         }
       }
 
-      async function loadCourseForAttendance() {
+      // Load course for attendance view (admin)
+      async function loadCourseForAttendanceView() {
         const courseId = document.getElementById(
-          "attendanceCourseSelect"
+          "attendanceViewCourseSelect"
         ).value;
-        const container = document.getElementById("attendanceManagementTable");
-        if (!courseId) {
+        const date = document.getElementById("attendanceViewDate").value;
+        const container = document.getElementById("attendanceViewTable");
+
+        if (!courseId || !date) {
           container.innerHTML =
-            '<tr><td colspan="4" class="text-center">Select a course to mark attendance</td></tr>';
+            '<tr><td colspan="4" class="text-center">Select a course and date to view attendance</td></tr>';
           return;
         }
-        const enrollUrl =
-          API_BASE + "?action=course-enrollments&course_id=" + courseId;
-        const response = await fetch(enrollUrl, { credentials: "include" });
+
+        const attendanceUrl =
+          API_BASE +
+          `?action=course-attendance&course_id=${courseId}&date=${date}`;
+        const response = await fetch(attendanceUrl, { credentials: "include" });
         const result = await response.json();
+
         if (result.success && result.data && result.data.length > 0) {
           container.innerHTML = result.data
             .map(
-              (e) =>
-                "<tr><td>" +
-                e.full_name +
-                "</td><td>" +
-                e.email +
-                '</td><td><select class="form-select form-select-sm" data-enrollment="' +
-                e.id +
-                '"><option value="present">Present</option><option value="absent">Absent</option><option value="late">Late</option></select></td><td>-</td></tr>'
+              (a) => `
+            <tr>
+              <td>${a.full_name}</td>
+              <td>${a.email}</td>
+              <td><span class="badge ${
+                a.status === "present"
+                  ? "bg-success"
+                  : a.status === "absent"
+                  ? "bg-danger"
+                  : "bg-warning"
+              }">${a.status}</span></td>
+              <td>${new Date(a.attendance_date).toLocaleDateString()}</td>
+            </tr>
+          `
             )
             .join("");
+        } else {
+          container.innerHTML =
+            '<tr><td colspan="4" class="text-center">No attendance records for this date</td></tr>';
         }
       }
 
-      async function saveAttendance() {
-        const courseId = document.getElementById(
-          "attendanceCourseSelect"
-        ).value;
-        const attendanceDate = document.getElementById("attendanceDate").value;
-        if (!courseId || !attendanceDate) {
-          showAlert("Please select course and date");
-          return;
-        }
-        const selects = document.querySelectorAll("[data-enrollment]");
-        for (let select of selects) {
-          const enrollmentId = select.getAttribute("data-enrollment");
-          const status = select.value;
-          const result = await apiCall("add-attendance", "POST", {
-            enrollment_id: parseInt(enrollmentId),
-            attendance_date: attendanceDate,
-            status: status,
-          });
-        }
-        showAlert("Attendance saved successfully", "success");
-      }
-
+      // Load all exams for admin
       async function loadAllExams() {
         const result = await apiCall("courses", "GET");
         if (result.success && result.data) {
@@ -1560,13 +1803,7 @@
             result.data
               .map(
                 (c) =>
-                  '<option value="' +
-                  c.id +
-                  '">' +
-                  c.course_code +
-                  " - " +
-                  c.course_name +
-                  "</option>"
+                  `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`
               )
               .join("");
 
@@ -1580,20 +1817,18 @@
             const data = await res.json();
             if (data.success && data.data && data.data.length > 0) {
               data.data.forEach((exam) => {
-                html +=
-                  "<tr><td>" +
-                  course.course_code +
-                  "</td><td>" +
-                  new Date(exam.exam_date).toLocaleDateString() +
-                  "</td><td>" +
-                  exam.exam_time +
-                  "</td><td>" +
-                  exam.exam_type +
-                  "</td><td>" +
-                  exam.location +
-                  '</td><td><button class="btn btn-sm btn-danger" onclick="deleteExam(' +
-                  exam.id +
-                  ')">Delete</button></td></tr>';
+                html += `
+                  <tr>
+                    <td>${course.course_code}</td>
+                    <td>${new Date(exam.exam_date).toLocaleDateString()}</td>
+                    <td>${exam.exam_time}</td>
+                    <td>${exam.exam_type}</td>
+                    <td>${exam.location}</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="deleteExam(${
+                      exam.id
+                    })">Delete</button></td>
+                  </tr>
+                `;
               });
             }
           }
@@ -1603,11 +1838,13 @@
         }
       }
 
+      // Open add exam modal
       function openAddExamModal() {
         loadAllExams();
         new bootstrap.Modal(document.getElementById("addExamModal")).show();
       }
 
+      // Add exam
       async function addExam() {
         const courseId = document.getElementById("examCourseSelect").value;
         const examDate = document.getElementById("examDate").value;
@@ -1642,13 +1879,14 @@
         }
       }
 
+      // Delete exam
       async function deleteExam(examId) {
         if (confirm("Delete this exam?")) {
-          // Will need to add delete-exam action in API
           showAlert("Exam deletion feature coming soon");
         }
       }
 
+      // Download transcript
       async function downloadTranscript() {
         const result = await apiCall("student-transcript", "GET");
         if (result.success && result.data && result.data.length > 0) {
