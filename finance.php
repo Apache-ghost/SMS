@@ -300,25 +300,38 @@
                                         <h5 style="margin: 0;">Quick Actions</h5>
                                     </div>
                                     <div class="card-body">
-                                        <button onclick="handleQuickAction('payment-portal')" class="btn btn-success w-100 mb-2">
+                                        <!-- Student buttons -->
+                                        <button onclick="switchToSection('payment-portal')" class="btn btn-success w-100 mb-2 student-action">
                                             <i class="fas fa-cash-register"></i> Make Payment
                                         </button>
-                                        <button onclick="handleQuickAction('my-invoices')" class="btn btn-primary w-100 mb-2">
+                                        <button onclick="switchToSection('my-invoices')" class="btn btn-primary w-100 mb-2 student-action">
                                             <i class="fas fa-file-invoice"></i> View Invoices
                                         </button>
-                                        <button onclick="downloadStatement()" class="btn btn-info w-100 mb-2">
-                                            <i class="fas fa-download"></i> Download Statement
+                                        <button onclick="switchToSection('my-payments')" class="btn btn-info w-100 mb-2 student-action">
+                                            <i class="fas fa-credit-card"></i> My Payments
                                         </button>
                                         
-                                        <!-- Admin-only actions -->
-                                        <div class="admin-quick-action" style="display: none;">
-                                            <button onclick="handleQuickAction('all-invoices')" class="btn btn-warning w-100 mb-2">
-                                                <i class="fas fa-file-invoice-dollar"></i> Manage Invoices
-                                            </button>
-                                            <button onclick="handleQuickAction('campaigns')" class="btn btn-danger w-100">
-                                                <i class="fas fa-bullhorn"></i> View Campaigns
-                                            </button>
-                                        </div>
+                                        <!-- Admin buttons -->
+                                        <button onclick="switchToSection('all-invoices')" class="btn btn-primary w-100 mb-2 admin-action">
+                                            <i class="fas fa-file-invoice-dollar"></i> All Invoices
+                                        </button>
+                                        <button onclick="openCreateInvoiceModal()" class="btn btn-warning w-100 mb-2 admin-action">
+                                            <i class="fas fa-plus"></i> Create Invoice
+                                        </button>
+                                        <button onclick="switchToSection('payments-tracking')" class="btn btn-success w-100 mb-2 admin-action">
+                                            <i class="fas fa-receipt"></i> Payments Tracking
+                                        </button>
+                                        <button onclick="switchToSection('expenses')" class="btn btn-danger w-100 mb-2 admin-action">
+                                            <i class="fas fa-money-bill-wave"></i> Expenses
+                                        </button>
+                                        <button onclick="switchToSection('campaigns')" class="btn btn-info w-100 mb-2 admin-action">
+                                            <i class="fas fa-bullhorn"></i> Campaigns
+                                        </button>
+                                        
+                                        <!-- Common button for everyone -->
+                                        <button onclick="downloadStatement()" class="btn btn-secondary w-100">
+                                            <i class="fas fa-download"></i> Download Statement
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -921,26 +934,52 @@
             adminActions.forEach(action => action.style.display = 'none');
         }
     }
-    async function loadUserData() {
-        try {
-            const response = await fetch('/SMS/api/auth.php?action=current-user', { credentials: 'include' });
-            const data = await response.json();
-            if (data.success) {
-                currentUser = data.user;
-                document.getElementById('userNameDisplay').textContent = 'Welcome, ' + currentUser.full_name;
-                
-                if (['admin', 'staff'].includes(currentUser.role)) {
-                    document.getElementById('adminSection').classList.remove('hidden');
-                    document.getElementById('studentSection').style.display = 'none';
-                    await loadAllStudents();
-                } else {
-                    document.getElementById('adminSection').style.display = 'none';
-                }
-            }
-        } catch (error) {
-            console.error('Error loading user:', error);
+
+    function updateQuickActions() {
+        if (!currentUser) return;
+        
+        const studentActions = document.querySelectorAll('.student-action');
+        const adminActions = document.querySelectorAll('.admin-action');
+        
+        if (currentUser.role === 'student') {
+            // Show student buttons, hide admin buttons
+            studentActions.forEach(btn => btn.style.display = 'block');
+            adminActions.forEach(btn => btn.style.display = 'none');
+        } else if (['admin', 'staff'].includes(currentUser.role)) {
+            // Show admin buttons, hide student buttons
+            studentActions.forEach(btn => btn.style.display = 'none');
+            adminActions.forEach(btn => btn.style.display = 'block');
+        } else {
+            // For guests, hide both
+            studentActions.forEach(btn => btn.style.display = 'none');
+            adminActions.forEach(btn => btn.style.display = 'none');
         }
     }
+async function loadUserData() {
+    try {
+        const response = await fetch('/SMS/api/auth.php?action=current-user', { credentials: 'include' });
+        const data = await response.json();
+        if (data.success) {
+            currentUser = data.user;
+            document.getElementById('userNameDisplay').textContent = 'Welcome, ' + currentUser.full_name;
+            
+            // Update quick actions based on role
+            updateQuickActions();
+            
+            // Update sidebar visibility
+            if (['admin', 'staff'].includes(currentUser.role)) {
+                document.getElementById('adminSection').classList.remove('hidden');
+                document.getElementById('studentSection').style.display = 'none';
+                await loadAllStudents();
+            } else {
+                document.getElementById('adminSection').style.display = 'none';
+                document.getElementById('studentSection').classList.remove('hidden');
+            }
+        }
+    } catch (error) {
+        console.error('Error loading user:', error);
+    }
+}
 
     function setDefaultDates() {
         const today = new Date();
