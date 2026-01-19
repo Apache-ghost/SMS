@@ -155,7 +155,7 @@
             border-top: 4px solid var(--primary);
         }
         .metric-value {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 700;
             color: var(--primary);
             margin: 10px 0;
@@ -300,15 +300,25 @@
                                         <h5 style="margin: 0;">Quick Actions</h5>
                                     </div>
                                     <div class="card-body">
-                                        <button onclick="switchToSection('payment-portal')" class="btn btn-success w-100 mb-2">
+                                        <button onclick="handleQuickAction('payment-portal')" class="btn btn-success w-100 mb-2">
                                             <i class="fas fa-cash-register"></i> Make Payment
                                         </button>
-                                        <button onclick="switchToSection('my-invoices')" class="btn btn-primary w-100 mb-2">
+                                        <button onclick="handleQuickAction('my-invoices')" class="btn btn-primary w-100 mb-2">
                                             <i class="fas fa-file-invoice"></i> View Invoices
                                         </button>
-                                        <button onclick="downloadStatement()" class="btn btn-info w-100">
+                                        <button onclick="downloadStatement()" class="btn btn-info w-100 mb-2">
                                             <i class="fas fa-download"></i> Download Statement
                                         </button>
+                                        
+                                        <!-- Admin-only actions -->
+                                        <div class="admin-quick-action" style="display: none;">
+                                            <button onclick="handleQuickAction('all-invoices')" class="btn btn-warning w-100 mb-2">
+                                                <i class="fas fa-file-invoice-dollar"></i> Manage Invoices
+                                            </button>
+                                            <button onclick="handleQuickAction('campaigns')" class="btn btn-danger w-100">
+                                                <i class="fas fa-bullhorn"></i> View Campaigns
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -402,15 +412,15 @@
                                         <div class="invoice-box">
                                             <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                                                 <strong>Invoice Amount:</strong>
-                                                <span id="summaryInvoiceAmount">₦0</span>
+                                                <span id="summaryInvoiceAmount">FCFA 0</span>
                                             </div>
                                             <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                                                 <strong>Payment Amount:</strong>
-                                                <span id="summaryPaymentAmount">₦0</span>
+                                                <span id="summaryPaymentAmount">FCFA 0</span>
                                             </div>
                                             <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 2px solid #e5e7eb; color: var(--primary); font-weight: 700;">
                                                 <strong>Balance:</strong>
-                                                <span id="summaryBalance">₦0</span>
+                                                <span id="summaryBalance">FCFA 0</span>
                                             </div>
                                         </div>
                                     </div>
@@ -760,6 +770,101 @@
     </div>
 </div>
 
+<!-- Campaign Details Modal -->
+<div class="modal fade" id="campaignDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Campaign Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Campaign Name:</strong></label>
+                            <p id="detailCampaignName" class="form-control-static"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Type:</strong></label>
+                            <p id="detailCampaignType" class="form-control-static"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Budget:</strong></label>
+                            <p id="detailCampaignBudget" class="form-control-static"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Status:</strong></label>
+                            <p id="detailCampaignStatus" class="form-control-static"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Start Date:</strong></label>
+                            <p id="detailCampaignStart" class="form-control-static"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>End Date:</strong></label>
+                            <p id="detailCampaignEnd" class="form-control-static"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Campaign Performance</h6>
+                        <div class="metric-box">
+                            <div class="metric">
+                                <div class="metric-label">Total Leads</div>
+                                <div class="metric-value" id="detailTotalLeads">0</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Conversions</div>
+                                <div class="metric-value" id="detailConversions">0</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Conversion Rate</div>
+                                <div class="metric-value" id="detailConversionRate">0%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">ROI</div>
+                                <div class="metric-value" id="detailROI">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Recent Leads</h6>
+                        <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Date Added</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detailLeadsList">
+                                    <tr><td colspan="4" class="text-center">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="viewCampaignAnalytics()">
+                    <i class="fas fa-chart-line"></i> View Analytics
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Add Lead Modal -->
 <div class="modal fade" id="addLeadModal" tabindex="-1">
     <div class="modal-dialog">
@@ -802,8 +907,20 @@
         await loadDashboard();
         // Add this line to initialize payment amount listener
         document.getElementById('paymentAmount').addEventListener('input', updatePaymentSummary);
+
+        // Show admin quick actions based on user role
+        updateQuickActionsVisibility();
     });
 
+    // Add this function to update quick actions visibility
+    function updateQuickActionsVisibility() {
+        const adminActions = document.querySelectorAll('.admin-quick-action');
+        if (currentUser && ['admin', 'staff'].includes(currentUser.role)) {
+            adminActions.forEach(action => action.style.display = 'block');
+        } else {
+            adminActions.forEach(action => action.style.display = 'none');
+        }
+    }
     async function loadUserData() {
         try {
             const response = await fetch('/SMS/api/auth.php?action=current-user', { credentials: 'include' });
@@ -843,19 +960,55 @@
         setTimeout(() => alertContainer.innerHTML = '', 5000);
     }
 
+    function handleQuickAction(sectionId) {
+        // Check if user is logged in
+        if (!currentUser) {
+            showAlert('Please wait while user data loads...', 'warning');
+            setTimeout(() => handleQuickAction(sectionId), 1000);
+            return;
+        }
+        
+        // Check permissions for admin sections
+        if (['all-invoices', 'campaigns', 'payments-tracking', 'expenses', 'leads', 'analytics'].includes(sectionId)) {
+            if (!['admin', 'staff'].includes(currentUser.role)) {
+                showAlert('You do not have permission to access this section', 'danger');
+                return;
+            }
+        }
+        
+        // Switch to the section
+        switchToSection(sectionId);
+    }
+
     function switchToSection(sectionId) {
         const sections = document.querySelectorAll('.section');
         const navLinks = document.querySelectorAll('.sidebar .nav-link');
         
+        // Hide all sections
         sections.forEach(s => s.classList.add('hidden'));
+        
+        // Remove active class from all nav links
         navLinks.forEach(l => l.classList.remove('active'));
         
+        // Show the selected section
         document.getElementById(sectionId).classList.remove('hidden');
-        event.target.closest('.nav-link').classList.add('active');
+        
+        // Find and activate the corresponding nav link
+        const correspondingLink = Array.from(navLinks).find(link => 
+            link.getAttribute('onclick') && link.getAttribute('onclick').includes(sectionId)
+        );
+        if (correspondingLink) {
+            correspondingLink.classList.add('active');
+        }
+        
 
+        // Load section-specific data
         if (sectionId === 'my-invoices') loadMyInvoices();
         else if (sectionId === 'my-payments') loadMyPayments();
-        else if (sectionId === 'payment-portal') loadOutstandingInvoices();
+        else if (sectionId === 'payment-portal') {
+            loadOutstandingInvoices();
+            document.getElementById('paymentAmount').addEventListener('input', updatePaymentSummary);
+        }
         else if (sectionId === 'all-invoices') loadAllInvoices();
         else if (sectionId === 'payments-tracking') loadPaymentsTracking();
         else if (sectionId === 'expenses') loadExpenses();
@@ -874,6 +1027,9 @@
             document.getElementById('analyticsRevenue').textContent = '₦0';
             document.getElementById('analyticsROI').textContent = '0%';
         }
+        
+        // Scroll to top of the section
+        document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
     }
 
     function goBack() {
@@ -920,12 +1076,12 @@
         const result = await apiCall('dashboard-stats', 'GET');
         if (result.success && result.data) {
             if (currentUser.role === 'student') {
-                document.getElementById('totalRevenue').textContent = '₦' + result.data.total_amount.toLocaleString();
-                document.getElementById('totalExpenses').textContent = '₦' + result.data.paid_amount.toLocaleString();
-                document.getElementById('pendingCount').textContent = '₦' + result.data.outstanding_amount.toLocaleString();
+                document.getElementById('totalRevenue').textContent = 'FCFA ' + result.data.total_amount.toLocaleString();
+                document.getElementById('totalExpenses').textContent = 'FCFA ' + result.data.paid_amount.toLocaleString();
+                document.getElementById('pendingCount').textContent = 'FCFA ' + result.data.outstanding_amount.toLocaleString();
             } else {
-                document.getElementById('totalRevenue').textContent = '₦' + result.data.total_revenue.toLocaleString();
-                document.getElementById('totalExpenses').textContent = '₦' + result.data.total_expenses.toLocaleString();
+                document.getElementById('totalRevenue').textContent = 'FCFA ' + result.data.total_revenue.toLocaleString();
+                document.getElementById('totalExpenses').textContent = 'FCFA ' + result.data.total_expenses.toLocaleString();
                 document.getElementById('pendingCount').textContent = result.data.pending_invoices;
                 document.getElementById('activeCampaigns').textContent = result.data.active_campaigns;
             }
@@ -944,7 +1100,7 @@
         const container = document.getElementById('recentInvoices');
         if (result.success && result.data && result.data.length > 0) {
             container.innerHTML = result.data.slice(0, 5).map(inv => 
-                '<div class="invoice-box"><strong>' + inv.invoice_number + '</strong> - ₦' + inv.amount.toLocaleString() + 
+                '<div class="invoice-box"><strong>' + inv.invoice_number + '</strong> - FCFA ' + inv.amount.toLocaleString() + 
                 ' <span class="badge badge-status badge-' + inv.status + '">' + inv.status + '</span></div>'
             ).join('');
         } else {
@@ -953,13 +1109,13 @@
     }
     // Add function to update payment summary
     function updatePaymentSummary() {
-        const invoiceAmount = parseFloat(document.getElementById('summaryInvoiceAmount').textContent.replace('₦', '').replace(/,/g, '')) || 0;
+        const invoiceAmount = parseFloat(document.getElementById('summaryInvoiceAmount').textContent.replace('FCFA ', '').replace(/,/g, '')) || 0;
         const paymentAmount = parseFloat(document.getElementById('paymentAmount').value) || 0;
         
-        document.getElementById('summaryPaymentAmount').textContent = '₦' + paymentAmount.toLocaleString();
+        document.getElementById('summaryPaymentAmount').textContent = 'FCFA ' + paymentAmount.toLocaleString();
         
         const balance = invoiceAmount - paymentAmount;
-        document.getElementById('summaryBalance').textContent = '₦' + balance.toLocaleString();
+        document.getElementById('summaryBalance').textContent = 'FCFA ' + balance.toLocaleString();
         
         // Update balance color
         const balanceElement = document.getElementById('summaryBalance');
@@ -972,7 +1128,7 @@
         const container = document.getElementById('myInvoicesTable');
         if (result.success && result.data) {
             container.innerHTML = result.data.map(inv => 
-                '<tr><td>' + inv.invoice_number + '</td><td>₦' + inv.amount.toLocaleString() + 
+                '<tr><td>' + inv.invoice_number + '</td><td>FCFA' + inv.amount.toLocaleString() + 
                 '</td><td>' + new Date(inv.due_date).toLocaleDateString() + 
                 '</td><td><span class="badge badge-status badge-' + inv.status + '">' + inv.status + '</span></td>' +
                 '<td><button class="btn btn-sm btn-primary" onclick="switchToSection(\'payment-portal\')">Pay</button></td></tr>'
@@ -1283,21 +1439,123 @@
         content += 'Revenue: ₦' + (document.querySelector('[id="metric-value"]').textContent || '0') + '\n';
         downloadFile(content, 'financial_report.txt');
     }
+    async function viewCampaignDetails(campaignId) {
+    try {
+        // Get campaign details
+        const campaignResult = await apiCall('campaign-details', 'GET', { campaign_id: campaignId });
+        
+        if (campaignResult.success && campaignResult.data) {
+            const campaign = campaignResult.data;
+            
+            // Populate modal with campaign details
+            document.getElementById('detailCampaignName').textContent = campaign.campaign_name || 'N/A';
+            document.getElementById('detailCampaignType').textContent = formatCampaignType(campaign.campaign_type);
+            document.getElementById('detailCampaignBudget').textContent = '₦' + (campaign.budget ? campaign.budget.toLocaleString() : '0');
+            document.getElementById('detailCampaignStatus').innerHTML = 
+                `<span class="badge ${getCampaignStatusClass(campaign.status)}">${campaign.status || 'active'}</span>`;
+            document.getElementById('detailCampaignStart').textContent = campaign.start_date ? 
+                new Date(campaign.start_date).toLocaleDateString() : 'N/A';
+            document.getElementById('detailCampaignEnd').textContent = campaign.end_date ? 
+                new Date(campaign.end_date).toLocaleDateString() : 'N/A';
+            
+            // Get campaign analytics
+            const analyticsResult = await apiCall('campaign-analytics', 'GET', { campaign_id: campaignId });
+            if (analyticsResult.success && analyticsResult.data) {
+                const analytics = analyticsResult.data;
+                document.getElementById('detailTotalLeads').textContent = analytics.total_leads || '0';
+                document.getElementById('detailConversions').textContent = analytics.conversions || '0';
+                document.getElementById('detailConversionRate').textContent = 
+                    (analytics.conversion_rate ? analytics.conversion_rate.toFixed(1) : '0') + '%';
+                document.getElementById('detailROI').textContent = 
+                    (analytics.roi ? analytics.roi.toFixed(1) : '0') + '%';
+            }
+            
+            // Get recent leads
+            const leadsResult = await apiCall('campaign-leads', 'GET', { campaign_id: campaignId });
+            const leadsList = document.getElementById('detailLeadsList');
+            if (leadsResult.success && leadsResult.data && leadsResult.data.length > 0) {
+                leadsList.innerHTML = leadsResult.data.slice(0, 5).map(lead => 
+                    `<tr>
+                        <td>${lead.lead_name || 'N/A'}</td>
+                        <td>${lead.lead_email || 'N/A'}</td>
+                        <td><span class="badge ${getLeadStatusClass(lead.status)}">${lead.status || 'new'}</span></td>
+                        <td>${lead.created_at ? new Date(lead.created_at).toLocaleDateString() : 'N/A'}</td>
+                    </tr>`
+                ).join('');
+            } else {
+                leadsList.innerHTML = '<tr><td colspan="4" class="text-center">No leads found</td></tr>';
+            }
+            
+            // Store campaign ID in modal for analytics button
+            document.getElementById('campaignDetailsModal').setAttribute('data-campaign-id', campaignId);
+            
+            // Show the modal
+            new bootstrap.Modal(document.getElementById('campaignDetailsModal')).show();
+        } else {
+            showAlert('Failed to load campaign details: ' + (campaignResult.message || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error loading campaign details:', error);
+        showAlert('Error loading campaign details: ' + error.message);
+    }
+}
 
-    // Campaign Functions
+    function viewCampaignAnalytics() {
+        const modal = document.getElementById('campaignDetailsModal');
+        const campaignId = modal.getAttribute('data-campaign-id');
+        
+        if (campaignId) {
+            // Close the modal
+            bootstrap.Modal.getInstance(modal).hide();
+            
+            // Switch to analytics section and select this campaign
+            switchToSection('analytics');
+            
+            // Set the dropdown value
+            setTimeout(() => {
+                document.getElementById('analyticsCampaignSelect').value = campaignId;
+                loadCampaignAnalytics();
+            }, 500);
+        }
+    }
+
+    // Helper function to format campaign type
+    function formatCampaignType(type) {
+        const types = {
+            'social_media': 'Social Media',
+            'email': 'Email Marketing',
+            'referral': 'Referral Program',
+            'paid_ads': 'Paid Ads',
+            'other': 'Other'
+        };
+        return types[type] || type;
+    }
+
+    // Helper function for campaign status badges
+    function getCampaignStatusClass(status) {
+        switch(status) {
+            case 'active': return 'bg-success';
+            case 'inactive': return 'bg-warning';
+            case 'completed': return 'bg-info';
+            default: return 'bg-secondary';
+        }
+    }
+
     async function loadCampaigns() {
         const result = await apiCall('campaigns', 'GET');
         const container = document.getElementById('campaignsTable');
         if (result.success && result.data) {
             container.innerHTML = result.data.map(camp => 
-                '<tr><td>' + camp.campaign_name + '</td><td>' + camp.campaign_type + 
-                '</td><td>₦' + camp.budget.toLocaleString() + '</td><td>' + new Date(camp.start_date).toLocaleDateString() + ' to ' + new Date(camp.end_date).toLocaleDateString() + 
-                '</td><td><span class="badge bg-success">' + camp.status + '</span></td>' +
-                '<td><button class="btn btn-sm btn-info" onclick="viewCampaignDetails(' + camp.id + ')">View</button></td></tr>'
+                '<tr><td>' + camp.campaign_name + '</td><td>' + formatCampaignType(camp.campaign_type) + 
+                '</td><td>₦' + (camp.budget ? camp.budget.toLocaleString() : '0') + '</td><td>' + 
+                (camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A') + ' to ' + 
+                (camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A') + 
+                '</td><td><span class="badge ' + getCampaignStatusClass(camp.status) + '">' + (camp.status || 'active') + '</span></td>' +
+                '<td><button class="btn btn-sm btn-info" onclick="viewCampaignDetails(' + camp.id + ')">' +
+                '<i class="fas fa-eye"></i> View Details</button></td></tr>'
             ).join('');
         }
     }
-
     function openCreateCampaignModal() {
         document.getElementById('campaignStartDate').valueAsDate = new Date();
         new bootstrap.Modal(document.getElementById('createCampaignModal')).show();
@@ -1507,12 +1765,132 @@
         }
     }
 
-    function downloadStatement() {
-        let content = 'FINANCIAL STATEMENT\n\n';
-        content += 'Date: ' + new Date().toLocaleDateString() + '\n';
-        content += 'Student: ' + currentUser.full_name + '\n\n';
-        downloadFile(content, 'statement.txt');
+async function downloadStatement() {
+    try {
+        showAlert('Generating financial statement...', 'info');
+        
+        // Check if user data is loaded
+        if (!currentUser) {
+            await loadUserData();
+        }
+        
+        // Get all necessary data
+        let invoicesResult, paymentsResult, dashboardResult;
+        
+        if (currentUser.role === 'student') {
+            [invoicesResult, paymentsResult, dashboardResult] = await Promise.all([
+                apiCall('my-invoices', 'GET'),
+                apiCall('my-payments', 'GET'),
+                apiCall('dashboard-stats', 'GET')
+            ]);
+        } else {
+            // For admin, show their admin dashboard stats
+            [invoicesResult, paymentsResult, dashboardResult] = await Promise.all([
+                apiCall('all-invoices', 'GET'),
+                apiCall('payments-tracking', 'GET'),
+                apiCall('dashboard-stats', 'GET')
+            ]);
+        }
+        
+        let content = '='.repeat(70) + '\n';
+        content += 'FINANCIAL STATEMENT\n';
+        content += '='.repeat(70) + '\n\n';
+        
+        // User Information
+        content += 'USER INFORMATION\n';
+        content += '-'.repeat(40) + '\n';
+        content += 'Name: ' + (currentUser.full_name || 'N/A') + '\n';
+        content += 'User ID: ' + (currentUser.id || 'N/A') + '\n';
+        content += 'Role: ' + (currentUser.role || 'N/A') + '\n';
+        content += 'Date Generated: ' + new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }) + '\n';
+        content += 'Time Generated: ' + new Date().toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        }) + '\n\n';
+        
+        // Financial Summary Section
+        content += 'FINANCIAL SUMMARY\n';
+        content += '-'.repeat(40) + '\n';
+        
+        if (dashboardResult.success && dashboardResult.data) {
+            const data = dashboardResult.data;
+            
+            if (currentUser.role === 'student') {
+                content += 'Total Invoices Amount: FCFA ' + (data.total_amount ? data.total_amount.toLocaleString() : '0') + '\n';
+                content += 'Total Amount Paid: FCFA ' + (data.paid_amount ? data.paid_amount.toLocaleString() : '0') + '\n';
+                content += 'Outstanding Balance: FCFA ' + (data.outstanding_amount ? data.outstanding_amount.toLocaleString() : '0') + '\n';
+            } else {
+                content += 'Total Revenue: FCFA ' + (data.total_revenue ? data.total_revenue.toLocaleString() : '0') + '\n';
+                content += 'Total Expenses: FCFA ' + (data.total_expenses ? data.total_expenses.toLocaleString() : '0') + '\n';
+                content += 'Net Profit: FCFA ' + ((data.total_revenue - data.total_expenses) || 0).toLocaleString() + '\n';
+                content += 'Pending Invoices: ' + (data.pending_invoices || 0) + '\n';
+                content += 'Active Campaigns: ' + (data.active_campaigns || 0) + '\n';
+            }
+        }
+        content += '\n';
+        
+        // Detailed Invoices Section
+        content += 'INVOICE DETAILS\n';
+        content += '-'.repeat(70) + '\n';
+        
+        if (invoicesResult.success && invoicesResult.data && invoicesResult.data.length > 0) {
+            content += 'Invoice No.'.padEnd(20) + 'Amount'.padEnd(15) + 'Due Date'.padEnd(15) + 'Status'.padEnd(15) + '\n';
+            content += '-'.repeat(70) + '\n';
+            
+            invoicesResult.data.forEach(inv => {
+                content += (inv.invoice_number || 'N/A').padEnd(20) +
+                          ('FCFA ' + (inv.amount ? parseFloat(inv.amount).toLocaleString() : '0')).padEnd(15) +
+                          (inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A').padEnd(15) +
+                          (inv.status ? inv.status.toUpperCase() : 'PENDING').padEnd(15) + '\n';
+            });
+        } else {
+            content += 'No invoices found\n';
+        }
+        
+        content += '\n';
+        
+        // Payment History Section
+        content += 'PAYMENT HISTORY\n';
+        content += '-'.repeat(70) + '\n';
+        
+        if (paymentsResult.success && paymentsResult.data && paymentsResult.data.length > 0) {
+            content += 'Ref No.'.padEnd(25) + 'Amount'.padEnd(15) + 'Method'.padEnd(15) + 'Date'.padEnd(15) + '\n';
+            content += '-'.repeat(70) + '\n';
+            
+            paymentsResult.data.forEach(pay => {
+                content += (pay.reference_number || 'N/A').padEnd(25) +
+                          ('FCFA ' + (pay.amount ? parseFloat(pay.amount).toLocaleString() : '0')).padEnd(15) +
+                          (pay.payment_method ? pay.payment_method.toUpperCase().replace('_', ' ') : 'N/A').padEnd(15) +
+                          (pay.payment_date ? new Date(pay.payment_date).toLocaleDateString() : 'N/A').padEnd(15) + '\n';
+            });
+        } else {
+            content += 'No payment history found\n';
+        }
+        
+        content += '\n' + '='.repeat(70) + '\n';
+        content += 'END OF STATEMENT\n';
+        content += 'Generated by: ' + (currentUser.full_name || 'System User') + '\n';
+        content += '='.repeat(70) + '\n';
+        
+        // Create filename
+        const timestamp = new Date().toISOString().split('T')[0];
+        const safeName = (currentUser.full_name || 'User').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const filename = `financial_statement_${safeName}_${timestamp}.txt`;
+        
+        // Download the file
+        downloadFile(content, filename);
+        showAlert('Statement downloaded successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error generating statement:', error);
+        showAlert('Failed to generate statement: ' + error.message, 'danger');
     }
+}
 
     function downloadFile(content, filename) {
         const element = document.createElement('a');
