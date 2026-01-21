@@ -321,6 +321,23 @@ try {
                 $response = ['success' => false, 'message' => 'Unauthorized'];
             }
         }
+        elseif ($action === 'delete-attendance') {
+            if (User::hasRole(['admin', 'staff'])) {
+                $attendance_id = $_GET['id'] ?? 0;
+                
+                $query = "DELETE FROM hr_attendance WHERE id = ?";
+                $stmt = $db->prepare($query);
+                $stmt->bind_param("i", $attendance_id);
+                
+                if ($stmt->execute()) {
+                    $response = ['success' => true, 'message' => 'Attendance record deleted'];
+                } else {
+                    $response = ['success' => false, 'message' => 'Failed to delete attendance'];
+                }
+            } else {
+                $response = ['success' => false, 'message' => 'Unauthorized'];
+            }
+        }
     }
     
 } catch (Exception $e) {

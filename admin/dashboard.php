@@ -370,6 +370,7 @@
                                 <option value="admin">Admin</option>
                                 <option value="staff">Staff</option>
                                 <option value="faculty">Faculty</option>
+                                <option value="lecturer">Lecturer</option>
                                 <option value="student">Student</option>
                             </select>
                         </div>

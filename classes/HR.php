@@ -165,7 +165,7 @@ class HR {
     }
 
     public function getAttendanceRecords($month) {
-        $query = "SELECT a.*, e.employee_id, u.full_name FROM hr_attendance a 
+        $query = "SELECT a.*, e.id as employee_db_id, e.employee_id, u.full_name FROM hr_attendance a 
                   JOIN employees e ON a.employee_id = e.id 
                   JOIN users u ON e.user_id = u.id 
                   WHERE DATE_FORMAT(a.attendance_date, '%Y-%m') = ? 

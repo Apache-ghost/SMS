@@ -42,7 +42,7 @@ class Admin {
         $hashed_password = password_hash($password, PASSWORD_BCRYPT);
 
         // Validate role
-        $valid_roles = ['admin', 'staff', 'student', 'faculty'];
+        $valid_roles = ['admin', 'staff', 'student', 'faculty', 'lecturer'];
         if (!in_array($role, $valid_roles)) {
             $role = 'student';
         }
@@ -56,6 +56,21 @@ class Admin {
         if ($stmt->execute()) {
             $user_id = $this->db->insert_id;
             $stmt->close();
+            
+            // If role is staff, faculty, or lecturer, add to employees table
+            if (in_array($role, ['staff', 'faculty', 'lecturer'])) {
+                $employee_id = 'EMP' . str_pad($user_id, 4, '0', STR_PAD_LEFT);
+                $designation = ucfirst($role);
+                $department = ($role === 'faculty' || $role === 'lecturer') ? 'Academic' : 'Administration';
+                $salary = 0.00; // Default salary, can be updated later
+
+                $emp_query = "INSERT INTO employees (user_id, employee_id, designation, department, salary, hire_date, created_at) 
+                              VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
+                $emp_stmt = $this->db->prepare($emp_query);
+                $emp_stmt->bind_param("issds", $user_id, $employee_id, $designation, $department, $salary);
+                $emp_stmt->execute();
+                $emp_stmt->close();
+            }
             
             // Log the action
             $this->logActivity('CREATE', 'USER', $user_id, null, json_encode([
@@ -277,16 +292,51 @@ class Admin {
             return ['success' => false, 'message' => 'Cannot delete your own account'];
         }
 
-        $query = "DELETE FROM " . $this->usersTable . " WHERE id = ?";
-        $stmt = $this->db->prepare($query);
-        $stmt->bind_param("i", $user_id);
+        // Start transaction
+        $this->db->begin_transaction();
 
-        if ($stmt->execute()) {
-            $this->logActivity('DELETE', 'USER', $user_id, json_encode($user), null);
-            return ['success' => true, 'message' => 'User deleted successfully'];
+        try {
+            // Delete related records first
+            // Delete enrollments
+            $deleteEnrollments = "DELETE FROM enrollments WHERE user_id = ?";
+            $stmt = $this->db->prepare($deleteEnrollments);
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $stmt->close();
+
+            // Delete employee record if exists
+            $deleteEmployee = "DELETE FROM employees WHERE user_id = ?";
+            $stmt = $this->db->prepare($deleteEmployee);
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $stmt->close();
+
+            // Delete grades (if they reference enrollments, but to be safe)
+            $deleteGrades = "DELETE g FROM grades g INNER JOIN enrollments e ON g.enrollment_id = e.id WHERE e.user_id = ?";
+            $stmt = $this->db->prepare($deleteGrades);
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $stmt->close();
+
+            // Finally delete the user
+            $query = "DELETE FROM " . $this->usersTable . " WHERE id = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->bind_param("i", $user_id);
+            $result = $stmt->execute();
+            $stmt->close();
+
+            if ($result) {
+                $this->db->commit();
+                $this->logActivity('DELETE', 'USER', $user_id, json_encode($user), null);
+                return ['success' => true, 'message' => 'User deleted successfully'];
+            } else {
+                $this->db->rollback();
+                return ['success' => false, 'message' => 'Failed to delete user'];
+            }
+        } catch (Exception $e) {
+            $this->db->rollback();
+            return ['success' => false, 'message' => 'Failed to delete user: ' . $e->getMessage()];
         }
-
-        return ['success' => false, 'message' => 'Failed to delete user'];
     }
 
     // ==================== DASHBOARD STATISTICS ====================

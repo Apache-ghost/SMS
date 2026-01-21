@@ -38,7 +38,7 @@ class User {
         $hashed_password = password_hash($password, PASSWORD_BCRYPT);
 
         // Validate role
-        $valid_roles = ['admin', 'staff', 'student', 'faculty'];
+        $valid_roles = ['admin', 'staff', 'student', 'faculty', 'lecturer'];
         if (!in_array($role, $valid_roles)) {
             $role = 'student';
         }
@@ -49,8 +49,25 @@ class User {
         $stmt->bind_param("ssss", $email, $hashed_password, $full_name, $role);
         
         if ($stmt->execute()) {
+            $user_id = $this->db->insert_id;
             $stmt->close();
-            return ['success' => true, 'message' => 'User registered successfully', 'id' => $this->db->insert_id];
+
+            // If role is staff, faculty, or lecturer, add to employees table
+            if (in_array($role, ['staff', 'faculty', 'lecturer'])) {
+                $employee_id = 'EMP' . str_pad($user_id, 4, '0', STR_PAD_LEFT);
+                $designation = ucfirst($role);
+                $department = ($role === 'faculty' || $role === 'lecturer') ? 'Academic' : 'Administration';
+                $salary = 0.00; // Default salary, can be updated later
+
+                $emp_query = "INSERT INTO employees (user_id, employee_id, designation, department, salary, hire_date, created_at) 
+                              VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
+                $emp_stmt = $this->db->prepare($emp_query);
+                $emp_stmt->bind_param("issds", $user_id, $employee_id, $designation, $department, $salary);
+                $emp_stmt->execute();
+                $emp_stmt->close();
+            }
+
+            return ['success' => true, 'message' => 'User registered successfully', 'id' => $user_id];
         } else {
             $stmt->close();
             return ['success' => false, 'message' => 'Registration failed'];

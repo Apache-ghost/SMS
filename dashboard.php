@@ -388,7 +388,8 @@ $user_email = $_SESSION['email'] ?? '';
                 </div>
             </div>
 
-            <!-- HR Module -->
+            <!-- HR Module (Only for non-students) -->
+            <?php if ($user_role !== 'student'): ?>
             <div class="module-card hr">
                 <div class="module-header">
                     <i class="fas fa-users"></i>
@@ -401,6 +402,7 @@ $user_email = $_SESSION['email'] ?? '';
                     </a>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
 
         <!-- Admin Controls (Only for Admins) -->

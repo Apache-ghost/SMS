@@ -471,9 +471,50 @@
               <h2 style="margin-bottom: 30px; color: #1f2937">
                 Mark Attendance
               </h2>
+
+              <!-- Quick Mark Attendance Form -->
+              <div class="card mb-4">
+                <div class="card-header bg-transparent p-4 border-bottom">
+                  <h5 style="margin: 0">Mark Attendance for Today</h5>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-4">
+                      <label class="form-label">Employee</label>
+                      <select id="quickEmployeeSelect" class="form-select">
+                        <option value="">Select Employee</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Status</label>
+                      <select id="quickStatusSelect" class="form-select">
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                        <option value="late">Late</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Date</label>
+                      <input
+                        type="date"
+                        id="quickDate"
+                        class="form-control"
+                        value="<?php echo date('Y-m-d'); ?>"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onclick="markQuickAttendance()"
+                    class="btn btn-primary mt-3"
+                  >
+                    <i class="fas fa-check"></i> Mark Attendance
+                  </button>
+                </div>
+              </div>
+
               <div class="row mb-3">
                 <div class="col-md-3">
-                  <label class="form-label">Month</label>
+                  <label class="form-label">View Month</label>
                   <input
                     type="month"
                     id="attendanceMonth"
@@ -1161,8 +1202,10 @@
         if (sectionId === "employees") loadAllEmployees();
         else if (sectionId === "my-leaves") loadMyLeaves();
         else if (sectionId === "leaves-approval") loadLeaveApprovals();
-        else if (sectionId === "attendance") loadAttendanceRecords();
-        else if (sectionId === "payroll") loadPayrollRecords();
+        else if (sectionId === "attendance") {
+          loadAttendanceRecords();
+          loadEmployeesForAttendance(); // Add this line
+        } else if (sectionId === "payroll") loadPayrollRecords();
         else if (sectionId === "my-payroll") loadMyPayroll();
         else if (sectionId === "assets") loadAssets();
         else if (sectionId === "my-assets") loadMyAssets();
@@ -1555,13 +1598,13 @@
         table.innerHTML = records
           .map(
             (record) => `
-            <tr>
-                <td>${record.full_name}</td>
-                <td>${record.attendance_date}</td>
+            <tr data-employee-id="${record.employee_db_id}" 
+                data-attendance-date="${record.attendance_date}"
+                data-record-id="${record.id}">
+                <td>${record.full_name || "N/A"}</td>
+                <td>${record.attendance_date || "N/A"}</td>
                 <td>
-                    <select class="form-select form-select-sm" onchange="updateAttendance(${
-                      record.employee_id
-                    }, '${record.attendance_date}', this.value)">
+                    <select class="form-select form-select-sm attendance-status">
                         <option value="present" ${
                           record.status === "present" ? "selected" : ""
                         }>Present</option>
@@ -1574,17 +1617,41 @@
                     </select>
                 </td>
                 <td>
-                    <button onclick="deleteAttendance(${
-                      record.id
-                    })" class="btn btn-sm btn-danger btn-action">Delete</button>
+                    <button class="btn btn-sm btn-danger btn-action delete-attendance-btn">Delete</button>
                 </td>
             </tr>
         `
           )
           .join("");
+
+        // Add event listeners using event delegation
+        table.addEventListener("change", function (e) {
+          if (e.target.classList.contains("attendance-status")) {
+            const row = e.target.closest("tr");
+            const employeeId = row.getAttribute("data-employee-id");
+            const attendanceDate = row.getAttribute("data-attendance-date");
+            const status = e.target.value;
+
+            updateAttendance(employeeId, attendanceDate, status);
+          }
+        });
+
+        table.addEventListener("click", function (e) {
+          if (e.target.classList.contains("delete-attendance-btn")) {
+            const row = e.target.closest("tr");
+            const attendanceId = row.getAttribute("data-record-id");
+
+            deleteAttendanceRecord(attendanceId);
+          }
+        });
       }
 
       async function updateAttendance(employeeId, date, status) {
+        if (!employeeId || !date || !status) {
+          showAlert("Invalid attendance data", "danger");
+          return;
+        }
+
         try {
           const response = await fetch(API_BASE + "?action=add-attendance", {
             method: "POST",
@@ -1599,7 +1666,72 @@
 
           const data = await response.json();
           if (data.success) {
-            showAlert("Attendance updated", "success");
+            showAlert("Attendance updated successfully", "success");
+            // Optional: Refresh the table
+            // loadAttendanceRecords();
+          } else {
+            showAlert(data.message || "Failed to update attendance", "danger");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          showAlert("Error updating attendance", "danger");
+        }
+      }
+
+      async function markQuickAttendance() {
+        const employeeId = document.getElementById("quickEmployeeSelect").value;
+        const status = document.getElementById("quickStatusSelect").value;
+        const date = document.getElementById("quickDate").value;
+
+        if (!employeeId) {
+          showAlert("Please select an employee", "danger");
+          return;
+        }
+
+        try {
+          const response = await fetch(API_BASE + "?action=add-attendance", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              employee_id: employeeId,
+              attendance_date: date,
+              status: status,
+            }),
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            showAlert("Attendance marked successfully", "success");
+            loadAttendanceRecords();
+            document.getElementById("quickEmployeeSelect").value = "";
+          } else {
+            showAlert(data.message || "Failed to mark attendance", "danger");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          showAlert("Error marking attendance", "danger");
+        }
+      }
+
+      // Load employees for quick attendance dropdown
+      async function loadEmployeesForAttendance() {
+        try {
+          const response = await fetch(`${API_BASE}?action=all-employees`, {
+            credentials: "include",
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            const select = document.getElementById("quickEmployeeSelect");
+            select.innerHTML =
+              '<option value="">Select Employee</option>' +
+              data.data
+                .map(
+                  (emp) =>
+                    `<option value="${emp.id}">${emp.employee_id} - ${emp.full_name}</option>`
+                )
+                .join("");
           }
         } catch (error) {
           console.error("Error:", error);
@@ -2238,12 +2370,34 @@
         }
       }
 
-      function deleteAttendance(attendanceId) {
+      async function deleteAttendanceRecord(attendanceId) {
         if (
           confirm("Are you sure you want to delete this attendance record?")
         ) {
-          console.log("Delete attendance:", attendanceId);
-          showAlert("Deletion functionality coming soon", "info");
+          try {
+            // You need to implement this endpoint in your backend
+            const response = await fetch(
+              `${API_BASE}?action=delete-attendance&id=${attendanceId}`,
+              {
+                method: "DELETE",
+                credentials: "include",
+              }
+            );
+
+            const data = await response.json();
+            if (data.success) {
+              showAlert("Attendance record deleted", "success");
+              loadAttendanceRecords();
+            } else {
+              showAlert(
+                data.message || "Failed to delete attendance",
+                "danger"
+              );
+            }
+          } catch (error) {
+            console.error("Error:", error);
+            showAlert("Error deleting attendance record", "danger");
+          }
         }
       }
 

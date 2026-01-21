@@ -261,6 +261,8 @@ if (isset($_SESSION['user_id'])) {
                                 <option value="">Select a role</option>
                                 <option value="student">Student</option>
                                 <option value="faculty">Faculty</option>
+                                <option value="staff">Staff</option>
+                                <option value="lecturer">Lecturer</option>
                             </select>
                         </div>
                         <button type="submit" class="btn-login">Create Account</button>
