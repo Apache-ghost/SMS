@@ -11,6 +11,109 @@
     <!-- End of Navbar -->
 
     <main>
+        <!-- Welcome Banner -->
+        <div class="parent-welcome-banner">
+            <h2>👨‍👩‍👧 Welcome, <?php echo htmlspecialchars($_SESSION['parent_name'] ?? 'Parent'); ?>!</h2>
+            <p>✨ Stay connected with your children's educational journey</p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="parent-quick-actions">
+            <a href="children.php" class="parent-action-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="parent-action-icon">👶</div>
+                <div class="parent-action-text">
+                    <h4>My Children</h4>
+                    <p>View student profiles</p>
+                </div>
+            </a>
+            <a href="exams.php" class="parent-action-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="parent-action-icon">📊</div>
+                <div class="parent-action-text">
+                    <h4>Exam Results</h4>
+                    <p>Check performance</p>
+                </div>
+            </a>
+            <a href="messages.php" class="parent-action-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="parent-action-icon">📬</div>
+                <div class="parent-action-text">
+                    <h4>Messages</h4>
+                    <p>School communications</p>
+                </div>
+            </a>
+            <a href="calendar.php" class="parent-action-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <div class="parent-action-icon">🗓️</div>
+                <div class="parent-action-text">
+                    <h4>Calendar</h4>
+                    <p>Events & schedules</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Achievement Badges -->
+        <div class="parent-achievements">
+            <h3><i class='bx bx-trophy'></i> Parent Achievements</h3>
+            <div class="parent-badges-grid">
+                <div class="parent-badge-item earned" title="Active Parent">
+                    <div class="parent-badge-icon">🎖️</div>
+                    <div class="parent-badge-name">Active</div>
+                </div>
+                <div class="parent-badge-item" title="Check grades weekly">
+                    <div class="parent-badge-icon">📝</div>
+                    <div class="parent-badge-name">Engaged</div>
+                </div>
+                <div class="parent-badge-item" title="Reply to 10 messages">
+                    <div class="parent-badge-icon">💬</div>
+                    <div class="parent-badge-name">Communicator</div>
+                </div>
+                <div class="parent-badge-item" title="Attend all meetings">
+                    <div class="parent-badge-icon">👥</div>
+                    <div class="parent-badge-name">Supportive</div>
+                </div>
+                <div class="parent-badge-item" title="Log in 30 days">
+                    <div class="parent-badge-icon">⭐</div>
+                    <div class="parent-badge-name">Dedicated</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monitoring Timer & Child Progress -->
+        <div class="parent-dashboard-grid">
+            <div class="parent-timer-card">
+                <div class="parent-card-header">
+                    <h3><i class='bx bx-timer'></i> Monitoring Time</h3>
+                </div>
+                <div class="parent-timer-circle">
+                    <div class="parent-timer-text" id="parentTimerDisplay">00:00</div>
+                </div>
+                <div class="parent-timer-controls">
+                    <button class="parent-timer-btn parent-start-btn" id="parentStartBtn" onclick="startParentTimer()">
+                        <i class='bx bx-play'></i> Start
+                    </button>
+                    <button class="parent-timer-btn parent-pause-btn" id="parentPauseBtn" onclick="pauseParentTimer()" style="display:none;">
+                        <i class='bx bx-pause'></i> Pause
+                    </button>
+                    <button class="parent-timer-btn parent-reset-btn" onclick="resetParentTimer()">
+                        <i class='bx bx-reset'></i> Reset
+                    </button>
+                </div>
+                <div style="text-align: center; color: #777;">
+                    <small>Today: <strong id="parentTodayTime">0h 0m</strong></small>
+                </div>
+            </div>
+
+            <div class="parent-dashboard-card">
+                <div class="parent-card-header">
+                    <h3><i class='bx bx-bar-chart-alt'></i> Children Progress</h3>
+                </div>
+                <div id="childrenProgressSummary">
+                    <div class="child-progress-item">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 3px;">Loading progress...</div>
+                        <div style="color: #777; font-size: 0.85rem;"><i class='bx bx-loader-alt bx-spin'></i> Please wait</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="header">
             <div class="left">
                 <h1>Parent Dashboard</h1>
@@ -487,6 +590,231 @@ function getNotificationIcon(type) {
 function logout() {
     window.location.href = '../assets/logout.php';
 }
+
+// Parent Timer Variables
+let parentTimerInterval;
+let parentTimerSeconds = 0;
+let parentIsRunning = false;
+
+function startParentTimer() {
+    if (!parentIsRunning) {
+        parentIsRunning = true;
+        document.getElementById('parentStartBtn').style.display = 'none';
+        document.getElementById('parentPauseBtn').style.display = 'inline-block';
+        
+        parentTimerInterval = setInterval(() => {
+            parentTimerSeconds++;
+            updateParentTimerDisplay();
+            saveParentMonitoringTime();
+        }, 1000);
+    }
+}
+
+function pauseParentTimer() {
+    parentIsRunning = false;
+    clearInterval(parentTimerInterval);
+    document.getElementById('parentStartBtn').style.display = 'inline-block';
+    document.getElementById('parentPauseBtn').style.display = 'none';
+}
+
+function resetParentTimer() {
+    pauseParentTimer();
+    parentTimerSeconds = 0;
+    updateParentTimerDisplay();
+}
+
+function updateParentTimerDisplay() {
+    const minutes = Math.floor(parentTimerSeconds / 60);
+    const seconds = parentTimerSeconds % 60;
+    document.getElementById('parentTimerDisplay').textContent = 
+        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function saveParentMonitoringTime() {
+    const today = new Date().toDateString();
+    let monitorData = JSON.parse(localStorage.getItem('parentMonitoringTime') || '{}');
+    
+    if (!monitorData[today]) {
+        monitorData[today] = 0;
+    }
+    monitorData[today]++;
+    
+    localStorage.setItem('parentMonitoringTime', JSON.stringify(monitorData));
+    updateParentMonitoringStats();
+}
+
+function updateParentMonitoringStats() {
+    const today = new Date().toDateString();
+    let monitorData = JSON.parse(localStorage.getItem('parentMonitoringTime') || '{}');
+    
+    const todaySeconds = monitorData[today] || 0;
+    const todayHours = Math.floor(todaySeconds / 3600);
+    const todayMinutes = Math.floor((todaySeconds % 3600) / 60);
+    document.getElementById('parentTodayTime').textContent = `${todayHours}h ${todayMinutes}m`;
+}
+
+// Create Confetti Effect
+function createParentConfetti() {
+    const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b'];
+    for (let i = 0; i < 50; i++) {
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.className = 'parent-confetti';
+            confetti.style.left = Math.random() * window.innerWidth + 'px';
+            confetti.style.top = '-10px';
+            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.animationDelay = Math.random() * 2 + 's';
+            document.body.appendChild(confetti);
+            
+            setTimeout(() => confetti.remove(), 3000);
+        }, i * 30);
+    }
+}
+
+// Particle Effect on Click
+document.addEventListener('click', (e) => {
+    const particle = document.createElement('div');
+    particle.style.cssText = `
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 50%;
+        pointer-events: none;
+        left: ${e.clientX}px;
+        top: ${e.clientY}px;
+        animation: particle-burst 0.6s ease-out forwards;
+        z-index: 9999;
+    `;
+    document.body.appendChild(particle);
+    setTimeout(() => particle.remove(), 600);
+});
+
+// Add particle burst animation
+const parentStyle = document.createElement('style');
+parentStyle.textContent = `
+    @keyframes particle-burst {
+        0% {
+            transform: scale(1) translate(0, 0);
+            opacity: 1;
+        }
+        100% {
+            transform: scale(0) translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(parentStyle);
+
+// Load Children Progress Summary
+function loadChildrenProgress() {
+    fetch('../assets/parentPortalHandler.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=get_children'
+    })
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('childrenProgressSummary');
+        
+        if (data.status === 'success' && data.children && data.children.length > 0) {
+            let html = '';
+            data.children.forEach(child => {
+                const attendancePercent = child.attendance_percentage || 0;
+                const gradeColor = child.latest_grade && child.latest_grade.includes('A') ? '#10b981' :
+                                  child.latest_grade && child.latest_grade.includes('B') ? '#3b82f6' :
+                                  child.latest_grade && child.latest_grade.includes('C') ? '#f59e0b' : '#6b7280';
+                
+                html += `
+                    <div class="child-progress-item">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 5px;">${child.student_name || child.fname || 'Student'}</div>
+                        <div style="display: flex; gap: 15px; color: #777; font-size: 0.85rem;">
+                            <span><i class='bx bx-check-circle'></i> Attendance: <strong>${attendancePercent}%</strong></span>
+                            ${child.latest_grade ? `<span style="color: ${gradeColor};"><i class='bx bx-trophy'></i> Grade: <strong>${child.latest_grade}</strong></span>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `
+                <div class="child-progress-item">
+                    <div style="color: #777;">No children data available</div>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading children progress:', error);
+    });
+}
+
+// Load Parent Achievements
+function loadParentAchievements() {
+    // Check children count for Engaged badge
+    const childrenCountEl = document.getElementById('childrenCount');
+    if (childrenCountEl) {
+        const checkCount = setInterval(() => {
+            const count = parseInt(childrenCountEl.textContent);
+            if (!isNaN(count) && count > 0) {
+                if (count >= 2) {
+                    unlockParentBadge(1); // Engaged badge
+                }
+                clearInterval(checkCount);
+            }
+        }, 1000);
+    }
+
+    // Check unread messages for Communicator badge
+    const messagesEl = document.getElementById('unreadMessages');
+    if (messagesEl) {
+        const checkMessages = setInterval(() => {
+            const count = parseInt(messagesEl.textContent);
+            if (!isNaN(count)) {
+                if (count === 0) {
+                    unlockParentBadge(2); // Communicator badge (all messages read)
+                }
+                clearInterval(checkMessages);
+            }
+        }, 1000);
+    }
+}
+
+function unlockParentBadge(index) {
+    const badges = document.querySelectorAll('.parent-badge-item');
+    if (badges[index] && !badges[index].classList.contains('earned')) {
+        badges[index].classList.add('earned');
+        
+        // Celebration effect
+        setTimeout(() => {
+            createParentConfetti();
+        }, 100);
+    }
+}
+
+// Add hover effects to insight cards
+document.querySelectorAll('.insights li').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-10px) scale(1.03)';
+        this.style.transition = 'all 0.3s ease';
+    });
+    card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0) scale(1)';
+    });
+});
+
+// Enhanced initialization
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        createParentConfetti();
+    }, 500);
+    
+    updateParentMonitoringStats();
+    loadChildrenProgress();
+    loadParentAchievements();
+});
+
+console.log('🎉 Parent Dashboard Enhanced! Monitor your children\'s progress with amazing features!');
 </script>
 
 <?php include('partials/_footer.php') ?>

@@ -10,6 +10,7 @@
     <ul class="side-menu main-side-board">
         <li><a href="dashboard.php"><i class='bx bxs-dashboard'></i>Dashboard</a></li>
         <li><a href="children.php"><i class='bx bxs-group'></i>My Children</a></li>
+        <li><a href="exams.php"><i class='bx bx-file-blank'></i>Exam Results</a></li>
         <li><a href="grades.php"><i class='bx bx-paste'></i>Grades & Reports</a></li>
         <li><a href="assignments.php"><i class='bx bx-file'></i>Assignments</a></li>
         <li><a href="attendance.php"><i class='bx bx-list-check'></i>Attendance</a></li>

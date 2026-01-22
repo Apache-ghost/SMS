@@ -1,12 +1,16 @@
 <?php
 ob_start();
-error_reporting(0);
+error_reporting(E_ALL);
 ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
 session_start();
 require 'config.php';
 
-ob_clean();
+// Clean output buffer and set JSON header
+while (ob_get_level()) {
+    ob_end_clean();
+}
 header('Content-Type: application/json');
 
 // Check if user is logged in
@@ -126,41 +130,76 @@ if ($userRole == 'admin') {
         
         // Get students for exam results
         else if ($action == 'get_students_for_exam') {
-            $examId = mysqli_real_escape_string($conn, $_GET['exam_id']);
-            
-            // Get exam details
-            $examSql = "SELECT * FROM exams WHERE exam_id = ?";
-            $stmt = mysqli_prepare($conn, $examSql);
-            mysqli_stmt_bind_param($stmt, "s", $examId);
-            mysqli_stmt_execute($stmt);
-            $examResult = mysqli_stmt_get_result($stmt);
-            $exam = mysqli_fetch_assoc($examResult);
-            
-            if (!$exam) {
-                echo json_encode(['status' => 'error', 'message' => 'Exam not found']);
+            try {
+                $examId = mysqli_real_escape_string($conn, $_GET['exam_id']);
+                
+                // Get exam details
+                $examSql = "SELECT * FROM exams WHERE exam_id = ?";
+                $stmt = mysqli_prepare($conn, $examSql);
+                
+                if (!$stmt) {
+                    echo json_encode(['status' => 'error', 'message' => 'Database error: ' . mysqli_error($conn)]);
+                    exit();
+                }
+                
+                mysqli_stmt_bind_param($stmt, "s", $examId);
+                mysqli_stmt_execute($stmt);
+                $examResult = mysqli_stmt_get_result($stmt);
+                $exam = mysqli_fetch_assoc($examResult);
+                
+                if (!$exam) {
+                    echo json_encode(['status' => 'error', 'message' => 'Exam not found']);
+                    exit();
+                }
+                
+                // Check if students table exists
+                $checkTable = mysqli_query($conn, "SHOW TABLES LIKE 'students'");
+                if (!$checkTable || mysqli_num_rows($checkTable) == 0) {
+                    echo json_encode(['status' => 'error', 'message' => 'Students table not found']);
+                    exit();
+                }
+                
+                // Get students in that class/section
+                $studentsSql = "SELECT s.id, s.fname, s.lname, 
+                                er.marks_obtained, er.grade, er.remarks
+                                FROM students s
+                                LEFT JOIN exam_results er ON s.id = er.student_id AND er.exam_id = ?
+                                WHERE s.class = ? AND s.section = ?
+                                ORDER BY s.fname, s.lname";
+                
+                $stmt = mysqli_prepare($conn, $studentsSql);
+                
+                if (!$stmt) {
+                    echo json_encode(['status' => 'error', 'message' => 'Query error: ' . mysqli_error($conn)]);
+                    exit();
+                }
+                
+                mysqli_stmt_bind_param($stmt, "sss", $examId, $exam['class'], $exam['section']);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                
+                $students = [];
+                while ($row = mysqli_fetch_assoc($result)) {
+                    $students[] = $row;
+                }
+                
+                echo json_encode([
+                    'status' => 'success', 
+                    'students' => $students, 
+                    'exam' => $exam,
+                    'debug' => [
+                        'exam_id' => $examId,
+                        'class' => $exam['class'],
+                        'section' => $exam['section'],
+                        'student_count' => count($students)
+                    ]
+                ]);
+                exit();
+                
+            } catch (Exception $e) {
+                echo json_encode(['status' => 'error', 'message' => 'Exception: ' . $e->getMessage()]);
                 exit();
             }
-            
-            // Get students in that class/section
-            $studentsSql = "SELECT s.id, s.fname, s.lname, s.roll, 
-                            er.marks_obtained, er.grade, er.remarks
-                            FROM students s
-                            LEFT JOIN exam_results er ON s.id = er.student_id AND er.exam_id = ?
-                            WHERE s.class = ? AND s.section = ?
-                            ORDER BY s.fname, s.lname";
-            
-            $stmt = mysqli_prepare($conn, $studentsSql);
-            mysqli_stmt_bind_param($stmt, "sss", $examId, $exam['class'], $exam['section']);
-            mysqli_stmt_execute($stmt);
-            $result = mysqli_stmt_get_result($stmt);
-            
-            $students = [];
-            while ($row = mysqli_fetch_assoc($result)) {
-                $students[] = $row;
-            }
-            
-            echo json_encode(['status' => 'success', 'students' => $students, 'exam' => $exam]);
-            exit();
         }
     }
     

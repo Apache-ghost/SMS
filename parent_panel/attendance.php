@@ -133,78 +133,105 @@ function displayAttendance(attendanceData) {
     
     let present = 0, absent = 0;
     attendanceData.forEach(record => {
-        if (record.attendence === 'present' || record.status === 'present') present++;
+        const status = (record.attendence || record.status || '').toLowerCase();
+        if (status === 'present' || status === 'p') present++;
         else absent++;
     });
     
     const total = attendanceData.length;
     const percentage = total > 0 ? ((present / total) * 100).toFixed(2) : 0;
-    const percentageColor = percentage >= 75 ? '#10b981' : percentage >= 50 ? '#f59e0b' : '#ef4444';
+    const percentageClass = percentage >= 90 ? 'success' : 
+                           percentage >= 75 ? 'primary' : 
+                           percentage >= 60 ? 'warning' : 'danger';
     
     let html = `
         <div class="row mb-4">
             <div class="col-md-3">
-                <div class="card text-center" style="border-left: 4px solid #10b981;">
-                    <div class="card-body">
-                        <h3 style="color: #10b981;">${present}</h3>
-                        <p class="text-muted mb-0">Present</p>
+                <div class="card text-center" style="border: none; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+                    <div class="card-body p-4">
+                        <i class='bx bx-check-circle' style='font-size: 40px; margin-bottom: 10px;'></i>
+                        <h2 style="font-weight: 700; margin: 10px 0;">${present}</h2>
+                        <p class="mb-0" style="opacity: 0.9;">Present Days</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center" style="border-left: 4px solid #ef4444;">
-                    <div class="card-body">
-                        <h3 style="color: #ef4444;">${absent}</h3>
-                        <p class="text-muted mb-0">Absent</p>
+                <div class="card text-center" style="border: none; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
+                    <div class="card-body p-4">
+                        <i class='bx bx-x-circle' style='font-size: 40px; margin-bottom: 10px;'></i>
+                        <h2 style="font-weight: 700; margin: 10px 0;">${absent}</h2>
+                        <p class="mb-0" style="opacity: 0.9;">Absent Days</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center" style="border-left: 4px solid #3b82f6;">
-                    <div class="card-body">
-                        <h3 style="color: #3b82f6;">${total}</h3>
-                        <p class="text-muted mb-0">Total Days</p>
+                <div class="card text-center" style="border: none; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <div class="card-body p-4">
+                        <i class='bx bx-calendar' style='font-size: 40px; margin-bottom: 10px;'></i>
+                        <h2 style="font-weight: 700; margin: 10px 0;">${total}</h2>
+                        <p class="mb-0" style="opacity: 0.9;">Total Days</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center" style="border-left: 4px solid ${percentageColor};">
-                    <div class="card-body">
-                        <h3 style="color: ${percentageColor};">${percentage}%</h3>
-                        <p class="text-muted mb-0">Attendance</p>
+                <div class="card text-center" style="border: none; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                    <div class="card-body p-4">
+                        <i class='bx bx-line-chart' style='font-size: 40px; margin-bottom: 10px;'></i>
+                        <h2 style="font-weight: 700; margin: 10px 0;">${percentage}%</h2>
+                        <p class="mb-0" style="opacity: 0.9;">Attendance Rate</p>
                     </div>
                 </div>
             </div>
         </div>
+        
+        <!-- Filter by Month -->
+        <div class="mb-3">
+            <select class="form-select" id="monthFilter" onchange="filterByMonth()" style="max-width: 250px; border-radius: 10px;">
+                <option value="">All Months</option>
+            </select>
+        </div>
     `;
     
-    html += '<div class="table-responsive"><table class="table table-striped">';
     html += `
-        <thead style="background: #667eea; color: white;">
-            <tr>
-                <th>Date</th>
-                <th>Day</th>
-                <th>Status</th>
-                <th>Remarks</th>
-            </tr>
-        </thead>
-        <tbody>
+        <div class="table-responsive">
+            <table class="table table-hover" id="attendanceTable">
+                <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <tr>
+                        <th style="border: none;">Date</th>
+                        <th style="border: none;">Day</th>
+                        <th style="border: none;">Status</th>
+                        <th style="border: none;">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
     `;
+    
+    // Store all attendance records for filtering
+    window.allAttendanceRecords = attendanceData;
+    
+    // Get unique months for filter
+    const months = new Set();
+    attendanceData.forEach(record => {
+        const date = new Date(record.date);
+        const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        months.add(monthYear);
+    });
     
     attendanceData.forEach(record => {
-        const status = record.attendence || record.status;
-        const statusColor = status === 'present' ? '#10b981' : '#ef4444';
-        const statusIcon = status === 'present' ? 'bx-check-circle' : 'bx-x-circle';
+        const status = (record.attendence || record.status || '').toLowerCase();
+        const statusDisplay = status === 'present' || status === 'p' ? 'Present' : 'Absent';
+        const statusColor = statusDisplay === 'Present' ? 'success' : 'danger';
+        const statusIcon = statusDisplay === 'Present' ? 'bx-check-circle' : 'bx-x-circle';
         const date = new Date(record.date);
         const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
         
         html += `
-            <tr>
-                <td>${formatDate(record.date)}</td>
+            <tr data-month="${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}">
+                <td><strong>${formatDate(record.date)}</strong></td>
                 <td>${dayName}</td>
                 <td>
-                    <span style="background: ${statusColor}; color: white; padding: 5px 12px; border-radius: 12px;">
-                        <i class='bx ${statusIcon}'></i> ${status.toUpperCase()}
+                    <span class="badge bg-${statusColor}" style="font-size: 14px; padding: 8px 15px;">
+                        <i class='bx ${statusIcon}'></i> ${statusDisplay}
                     </span>
                 </td>
                 <td>${record.remarks || '-'}</td>
@@ -214,6 +241,28 @@ function displayAttendance(attendanceData) {
     
     html += '</tbody></table></div>';
     content.innerHTML = html;
+    
+    // Populate month filter
+    const monthFilter = document.getElementById('monthFilter');
+    const sortedMonths = Array.from(months).sort().reverse();
+    sortedMonths.forEach(month => {
+        const [year, monthNum] = month.split('-');
+        const monthName = new Date(year, monthNum - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        monthFilter.innerHTML += `<option value="${month}">${monthName}</option>`;
+    });
+}
+
+function filterByMonth() {
+    const selectedMonth = document.getElementById('monthFilter').value;
+    const rows = document.querySelectorAll('#attendanceTable tbody tr');
+    
+    rows.forEach(row => {
+        if (!selectedMonth || row.dataset.month === selectedMonth) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
 }
 
 function formatDate(dateStr) {

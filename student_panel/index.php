@@ -17,6 +17,358 @@
     <link rel="stylesheet" href="../css/oranbyte-google-translator.css">
 
     <style type="text/css">
+        /* Floating Background Balls */
+        .floating-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .floating-ball {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.15;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .ball-1 {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            top: -150px;
+            right: -150px;
+            animation-delay: 0s;
+        }
+
+        .ball-2 {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            bottom: -100px;
+            left: -100px;
+            animation-delay: 3s;
+        }
+
+        .ball-3 {
+            width: 250px;
+            height: 250px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            top: 50%;
+            right: -125px;
+            animation-delay: 6s;
+        }
+
+        .ball-4 {
+            width: 180px;
+            height: 180px;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            bottom: 20%;
+            left: 10%;
+            animation-delay: 9s;
+        }
+
+        .ball-5 {
+            width: 220px;
+            height: 220px;
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            top: 30%;
+            left: 5%;
+            animation-delay: 12s;
+        }
+
+        .ball-6 {
+            width: 160px;
+            height: 160px;
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+            bottom: 40%;
+            right: 15%;
+            animation-delay: 15s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-30px) translateX(20px) rotate(90deg);
+            }
+            50% {
+                transform: translateY(-60px) translateX(-20px) rotate(180deg);
+            }
+            75% {
+                transform: translateY(-30px) translateX(-40px) rotate(270deg);
+            }
+        }
+
+        /* Welcome Banner with Animation */
+        .welcome-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            color: white;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-banner::before {
+            content: '🎓';
+            position: absolute;
+            font-size: 200px;
+            opacity: 0.1;
+            right: -50px;
+            top: -50px;
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .welcome-text {
+            position: relative;
+            z-index: 1;
+        }
+
+        .welcome-text h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            animation: slideInLeft 0.8s ease;
+        }
+
+        .welcome-text p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            animation: slideInLeft 1s ease;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Quick Stats Cards */
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 15px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .stat-card.purple .stat-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-card.green .stat-icon {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .stat-card.orange .stat-icon {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .stat-card.blue .stat-icon {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #333;
+            margin: 10px 0 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Motivational Quote Card */
+        .quote-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(240, 147, 251, 0.4);
+            animation: fadeIn 1.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .quote-card .quote-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .quote-card .quote-text {
+            font-size: 1.3rem;
+            font-style: italic;
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .quote-card .quote-author {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        /* Progress Rings */
+        .progress-ring-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .progress-ring-item {
+            text-align: center;
+        }
+
+        .progress-ring {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(#667eea 0deg, #667eea var(--progress), #e5e7eb var(--progress), #e5e7eb 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            position: relative;
+            animation: rotateIn 1s ease;
+        }
+
+        @keyframes rotateIn {
+            from {
+                transform: rotate(-180deg);
+                opacity: 0;
+            }
+            to {
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        .progress-ring::before {
+            content: '';
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: white;
+        }
+
+        .progress-value {
+            position: relative;
+            z-index: 1;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        /* Enhanced Cards */
+        .enhanced-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .enhanced-card:hover {
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            transform: translateY(-5px);
+        }
+
+        .enhanced-card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Confetti Effect */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #667eea;
+            position: absolute;
+            animation: confetti-fall 3s linear forwards;
+            pointer-events: none;
+        }
+
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
         .container main .subjects .eg #piechart {
             width: 600px;
             height: 350px;
@@ -134,10 +486,439 @@
             max-width: 100px;
             text-align: center;
         }
+
+        /* Quick Actions Grid */
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .action-card {
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .action-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            color: white;
+        }
+
+        .action-icon {
+            font-size: 2.5rem;
+            opacity: 0.9;
+        }
+
+        .action-text h4 {
+            margin: 0 0 5px 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .action-text p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            transform: translateY(-3px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-header h3 {
+            margin: 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+        }
+
+        .view-all-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .view-all-link:hover {
+            color: #764ba2;
+        }
+
+        /* Progress Section */
+        .progress-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .progress-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            transition: width 1s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            to {
+                left: 100%;
+            }
+        }
+
+        /* Recent Grades */
+        .grade-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .grade-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .grade-info h5 {
+            margin: 0 0 5px 0;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .grade-info p {
+            margin: 0;
+            color: #777;
+            font-size: 0.85rem;
+        }
+
+        .grade-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: white;
+        }
+
+        .grade-A { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .grade-B { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .grade-C { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .grade-D { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .grade-F { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); }
+
+        .loading-text {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+
+        @media screen and (max-width: 768px) {
+            .quick-actions-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Achievement Badges */
+        .achievements-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        .achievements-section h3 {
+            margin: 0 0 20px 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+        }
+
+        .badge-item {
+            text-align: center;
+            padding: 20px 10px;
+            border-radius: 12px;
+            background: #f5f5f5;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            opacity: 0.4;
+            filter: grayscale(100%);
+        }
+
+        .badge-item.earned {
+            opacity: 1;
+            filter: grayscale(0%);
+            background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+            animation: badge-glow 2s infinite;
+        }
+
+        @keyframes badge-glow {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+            }
+        }
+
+        .badge-item:hover {
+            transform: scale(1.1) translateY(-5px);
+        }
+
+        .badge-icon {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+
+        .badge-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        /* Study Timer */
+        .timer-display {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .timer-circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            position: relative;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .timer-text {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .timer-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+
+        .pause-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .reset-btn {
+            background: #e5e7eb;
+            color: #555;
+        }
+
+        .timer-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .study-stats {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+        }
+
+        .stat-mini {
+            text-align: center;
+        }
+
+        .stat-mini span {
+            display: block;
+            color: #777;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-mini strong {
+            display: block;
+            color: #667eea;
+            font-size: 1.2rem;
+        }
+
+        /* Upcoming Deadlines */
+        .deadline-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #f093fb;
+            transition: all 0.3s ease;
+        }
+
+        .deadline-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .deadline-item.urgent {
+            border-left-color: #ff0000;
+            background: #fff5f5;
+        }
+
+        .deadline-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .deadline-time {
+            color: #777;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .deadline-time.urgent {
+            color: #ff0000;
+            font-weight: 600;
+        }
     </style>
 </head>
 
 <body>
+    <!-- Floating Background -->
+    <div class="floating-background">
+        <div class="floating-ball ball-1"></div>
+        <div class="floating-ball ball-2"></div>
+        <div class="floating-ball ball-3"></div>
+        <div class="floating-ball ball-4"></div>
+        <div class="floating-ball ball-5"></div>
+        <div class="floating-ball ball-6"></div>
+    </div>
+
     <header>
         <div class="logo" title="University Management System">
             <img src="./images/logo.png" alt="">
@@ -266,6 +1047,209 @@
         </aside>
 
         <main>
+            <!-- Welcome Banner -->
+            <div class="welcome-banner">
+                <div class="welcome-text">
+                    <h1>👋 Welcome Back, <?php 
+                        $id = $_SESSION['uid'];
+                        $query = "SELECT fname FROM students WHERE id=?";
+                        $stmt = mysqli_prepare($conn, $query);
+                        mysqli_stmt_bind_param($stmt, "s", $id);
+                        mysqli_stmt_execute($stmt);
+                        $result = mysqli_stmt_get_result($stmt);
+                        if ($row = mysqli_fetch_assoc($result)) {
+                            echo htmlspecialchars($row["fname"]);
+                        }
+                        mysqli_stmt_close($stmt);
+                    ?>!</h1>
+                    <p>✨ Ready to achieve great things today? Let's make it awesome!</p>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="quick-stats">
+                <div class="stat-card orange">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-value" id="totalExams">0</div>
+                    <div class="stat-label">Exams Taken</div>
+                </div>
+                <div class="stat-card blue">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-value" id="averageGrade">-</div>
+                    <div class="stat-label">Avg Grade</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-value" id="pendingAssignments">0</div>
+                    <div class="stat-label">Pending Tasks</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value" id="completedAssignments">0</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions-grid">
+                <a href="exams.php" class="action-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="action-icon">📊</div>
+                    <div class="action-text">
+                        <h4>View Results</h4>
+                        <p>Check your exam scores</p>
+                    </div>
+                </a>
+                <a href="submit_assignment.php" class="action-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <div class="action-icon">📤</div>
+                    <div class="action-text">
+                        <h4>Submit Assignment</h4>
+                        <p>Upload your work</p>
+                    </div>
+                </a>
+                <a href="timetable.php" class="action-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <div class="action-icon">📅</div>
+                    <div class="action-text">
+                        <h4>My Schedule</h4>
+                        <p>View timetable</p>
+                    </div>
+                </a>
+                <a href="calendar.php" class="action-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <div class="action-icon">🗓️</div>
+                    <div class="action-text">
+                        <h4>Calendar</h4>
+                        <p>Upcoming events</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Achievement Badges -->
+            <div class="achievements-section">
+                <h3><i class='bx bx-trophy'></i> Achievements</h3>
+                <div class="badges-grid" id="achievementBadges">
+                    <div class="badge-item earned" data-achievement="first-login" title="Welcome to the platform!">
+                        <div class="badge-icon">🎓</div>
+                        <div class="badge-name">Scholar</div>
+                    </div>
+                    <div class="badge-item" data-achievement="perfect-attendance" title="100% attendance for a month">
+                        <div class="badge-icon">✨</div>
+                        <div class="badge-name">Perfect</div>
+                    </div>
+                    <div class="badge-item" data-achievement="top-performer" title="Grade A+ in all exams">
+                        <div class="badge-icon">🏆</div>
+                        <div class="badge-name">Top Star</div>
+                    </div>
+                    <div class="badge-item" data-achievement="task-master" title="Complete 10 assignments">
+                        <div class="badge-icon">📝</div>
+                        <div class="badge-name">Task Master</div>
+                    </div>
+                    <div class="badge-item" data-achievement="early-bird" title="Submit 5 assignments early">
+                        <div class="badge-icon">🌅</div>
+                        <div class="badge-name">Early Bird</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Study Timer & Upcoming Deadlines -->
+            <div class="dashboard-grid" style="margin-top: 20px;">
+                <div class="dashboard-card timer-card">
+                    <div class="card-header">
+                        <h3><i class='bx bx-timer'></i> Study Timer</h3>
+                    </div>
+                    <div class="timer-display">
+                        <div class="timer-circle">
+                            <div class="timer-text" id="timerDisplay">00:00</div>
+                        </div>
+                        <div class="timer-controls">
+                            <button class="timer-btn start-btn" id="startTimerBtn" onclick="startTimer()">
+                                <i class='bx bx-play'></i> Start
+                            </button>
+                            <button class="timer-btn pause-btn" id="pauseTimerBtn" onclick="pauseTimer()" style="display:none;">
+                                <i class='bx bx-pause'></i> Pause
+                            </button>
+                            <button class="timer-btn reset-btn" onclick="resetTimer()">
+                                <i class='bx bx-reset'></i> Reset
+                            </button>
+                        </div>
+                        <div class="study-stats">
+                            <div class="stat-mini">
+                                <span>Today</span>
+                                <strong id="todayStudyTime">0h 0m</strong>
+                            </div>
+                            <div class="stat-mini">
+                                <span>Total</span>
+                                <strong id="totalStudyTime">0h 0m</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class='bx bx-alarm'></i> Upcoming Deadlines</h3>
+                    </div>
+                    <div id="upcomingDeadlines">
+                        <p class="loading-text">Loading deadlines...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Grades & Performance -->
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class='bx bx-trophy'></i> Recent Grades</h3>
+                        <a href="exams.php" class="view-all-link">View All →</a>
+                    </div>
+                    <div id="recentGradesContainer">
+                        <p class="loading-text">Loading recent grades...</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class='bx bx-line-chart'></i> Performance Tracker</h3>
+                    </div>
+                    <div class="progress-section">
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Overall Progress</span>
+                                <span id="overallProgress">0%</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="overallProgressBar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Assignments</span>
+                                <span id="assignmentProgress">0%</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="assignmentProgressBar" style="width: 0%; background: #f093fb;"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Exams</span>
+                                <span id="examProgress">0%</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="examProgressBar" style="width: 0%; background: #4facfe;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Motivational Quote -->
+            <div class="quote-card">
+                <div class="quote-icon">💡</div>
+                <div class="quote-text" id="dailyQuote">
+                    "Education is the most powerful weapon which you can use to change the world."
+                </div>
+                <div class="quote-author">— Nelson Mandela</div>
+            </div>
+
             <h1>Dashboard</h1>
             
             <!-- Daily Attendance Card -->
@@ -1056,6 +2040,513 @@
                 <i class='bx bx-error-circle'></i> ${message}
             `;
         }
+    </script>
+
+    <!-- Enhanced Dashboard Features -->
+    <script>
+        // Motivational Quotes Array
+        const quotes = [
+            { text: "Education is the most powerful weapon which you can use to change the world.", author: "Nelson Mandela" },
+            { text: "The beautiful thing about learning is that nobody can take it away from you.", author: "B.B. King" },
+            { text: "Live as if you were to die tomorrow. Learn as if you were to live forever.", author: "Mahatma Gandhi" },
+            { text: "The more that you read, the more things you will know.", author: "Dr. Seuss" },
+            { text: "Education is not preparation for life; education is life itself.", author: "John Dewey" },
+            { text: "Success is the sum of small efforts, repeated day in and day out.", author: "Robert Collier" },
+            { text: "Don't let what you cannot do interfere with what you can do.", author: "John Wooden" },
+            { text: "The expert in anything was once a beginner.", author: "Helen Hayes" }
+        ];
+
+        // Display Random Quote
+        function displayRandomQuote() {
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            document.getElementById('dailyQuote').textContent = `"${randomQuote.text}"`;
+            document.querySelector('.quote-author').textContent = `— ${randomQuote.author}`;
+        }
+
+        // Load Quick Stats
+        function loadQuickStats() {
+            const studentId = '<?php echo $_SESSION['uid']; ?>';
+            
+            // Fetch exam results count and average grade
+            fetch('../assets/manageExams.php?action=get_my_stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('totalExams').textContent = data.stats.results_published || '0';
+                        document.getElementById('averageGrade').textContent = data.stats.average || '0%';
+                    }
+                })
+                .catch(error => console.error('Error loading exam stats:', error));
+
+            // Load assignment counts
+            loadAssignmentCounts();
+            
+            // Load recent grades
+            loadRecentGrades();
+            
+            // Load performance tracker
+            loadPerformanceTracker();
+        }
+
+        // Load Assignment Counts from existing assignments data
+        function loadAssignmentCounts() {
+            const formData = new FormData();
+            formData.append('action', 'get_my_assignments');
+            
+            fetch('../assets/manageAssignments.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.assignments) {
+                    const now = new Date();
+                    const pending = data.assignments.filter(a => !a.submission_id && new Date(a.due_date) > now).length;
+                    const completed = data.assignments.filter(a => a.submission_id).length;
+                    
+                    document.getElementById('pendingAssignments').textContent = pending;
+                    document.getElementById('completedAssignments').textContent = completed;
+                    
+                    // Update progress tracker
+                    const total = data.assignments.length;
+                    if (total > 0) {
+                        const assignmentProgress = Math.round((completed / total) * 100);
+                        updateProgressBar('assignmentProgress', 'assignmentProgressBar', assignmentProgress);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading assignments:', error);
+                // Set to 0 if error
+                document.getElementById('pendingAssignments').textContent = '0';
+                document.getElementById('completedAssignments').textContent = '0';
+            });
+        }
+
+        // Load Recent Grades
+        function loadRecentGrades() {
+            fetch('../assets/manageExams.php?action=get_my_results&limit=5')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('recentGradesContainer');
+                    
+                    if (data.status === 'success' && data.results && data.results.length > 0) {
+                        let html = '';
+                        data.results.forEach(result => {
+                            const gradeClass = result.grade.includes('A') ? 'grade-A' :
+                                             result.grade.includes('B') ? 'grade-B' :
+                                             result.grade.includes('C') ? 'grade-C' :
+                                             result.grade.includes('D') ? 'grade-D' : 'grade-F';
+                            
+                            html += `
+                                <div class="grade-item">
+                                    <div class="grade-info">
+                                        <h5>${result.exam_name}</h5>
+                                        <p><i class='bx bx-calendar'></i> ${formatDate(result.exam_date)}</p>
+                                    </div>
+                                    <div class="grade-badge ${gradeClass}">
+                                        ${result.grade} - ${result.percentage}%
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<p class="loading-text">No grades available yet</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading recent grades:', error);
+                    document.getElementById('recentGradesContainer').innerHTML = 
+                        '<p class="loading-text">Error loading grades</p>';
+                });
+        }
+
+        // Load Performance Tracker with real data
+        function loadPerformanceTracker() {
+            // Get exam stats
+            fetch('../assets/manageExams.php?action=get_my_stats')
+                .then(response => response.json())
+                .then(examData => {
+                    if (examData.status === 'success') {
+                        // Calculate exam progress from average
+                        const examProgress = parseInt(examData.stats.average) || 0;
+                        
+                        // Overall progress is the exam average
+                        const overallProgress = examProgress;
+                        
+                        // Update progress bars with animation
+                        setTimeout(() => {
+                            updateProgressBar('overallProgress', 'overallProgressBar', overallProgress);
+                            updateProgressBar('examProgress', 'examProgressBar', examProgress);
+                        }, 300);
+                    } else {
+                        // No exam data, set to 0
+                        updateProgressBar('overallProgress', 'overallProgressBar', 0);
+                        updateProgressBar('examProgress', 'examProgressBar', 0);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading exam performance:', error);
+                    updateProgressBar('overallProgress', 'overallProgressBar', 0);
+                    updateProgressBar('examProgress', 'examProgressBar', 0);
+                });
+        }
+
+        // Update Progress Bar
+        function updateProgressBar(labelId, barId, percentage) {
+            document.getElementById(labelId).textContent = percentage + '%';
+            document.getElementById(barId).style.width = percentage + '%';
+        }
+
+        // Format Date Helper
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        // Create Confetti Effect
+        function createConfetti() {
+            const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * window.innerWidth + 'px';
+                    confetti.style.top = '-10px';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 2 + 's';
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 30);
+            }
+        }
+
+        // Particle Effect on Click
+        document.addEventListener('click', (e) => {
+            const particle = document.createElement('div');
+            particle.style.cssText = `
+                position: fixed;
+                width: 10px;
+                height: 10px;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                border-radius: 50%;
+                pointer-events: none;
+                left: ${e.clientX}px;
+                top: ${e.clientY}px;
+                animation: particle-burst 0.6s ease-out forwards;
+                z-index: 9999;
+            `;
+            document.body.appendChild(particle);
+            setTimeout(() => particle.remove(), 600);
+        });
+
+        // Add particle burst animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes particle-burst {
+                0% {
+                    transform: scale(1) translate(0, 0);
+                    opacity: 1;
+                }
+                100% {
+                    transform: scale(0) translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Smooth Scroll for Internal Links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Add Hover Effect to Cards
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-10px) scale(1.02)';
+            });
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Welcome Animation on Load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                createConfetti();
+            }, 500);
+            
+            displayRandomQuote();
+            loadQuickStats();
+            loadUpcomingDeadlines();
+            initializeAchievements();
+        });
+
+        // Study Timer Variables
+        let timerInterval;
+        let timerSeconds = 0;
+        let isRunning = false;
+
+        function startTimer() {
+            if (!isRunning) {
+                isRunning = true;
+                document.getElementById('startTimerBtn').style.display = 'none';
+                document.getElementById('pauseTimerBtn').style.display = 'inline-flex';
+                
+                timerInterval = setInterval(() => {
+                    timerSeconds++;
+                    updateTimerDisplay();
+                    saveStudyTime();
+                }, 1000);
+            }
+        }
+
+        function pauseTimer() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            document.getElementById('startTimerBtn').style.display = 'inline-flex';
+            document.getElementById('pauseTimerBtn').style.display = 'none';
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timerSeconds = 0;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timerSeconds / 60);
+            const seconds = timerSeconds % 60;
+            document.getElementById('timerDisplay').textContent = 
+                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function saveStudyTime() {
+            const today = new Date().toDateString();
+            let studyData = JSON.parse(localStorage.getItem('studyTime') || '{}');
+            
+            if (!studyData[today]) {
+                studyData[today] = 0;
+            }
+            studyData[today]++;
+            
+            localStorage.setItem('studyTime', JSON.stringify(studyData));
+            updateStudyStats();
+        }
+
+        function updateStudyStats() {
+            const today = new Date().toDateString();
+            let studyData = JSON.parse(localStorage.getItem('studyTime') || '{}');
+            
+            // Today's study time
+            const todaySeconds = studyData[today] || 0;
+            const todayHours = Math.floor(todaySeconds / 3600);
+            const todayMinutes = Math.floor((todaySeconds % 3600) / 60);
+            document.getElementById('todayStudyTime').textContent = `${todayHours}h ${todayMinutes}m`;
+            
+            // Total study time
+            let totalSeconds = Object.values(studyData).reduce((a, b) => a + b, 0);
+            const totalHours = Math.floor(totalSeconds / 3600);
+            const totalMinutes = Math.floor((totalSeconds % 3600) / 60);
+            document.getElementById('totalStudyTime').textContent = `${totalHours}h ${totalMinutes}m`;
+        }
+
+        // Load study stats on page load
+        updateStudyStats();
+
+        // Load Upcoming Deadlines
+        function loadUpcomingDeadlines() {
+            const formData = new FormData();
+            formData.append('action', 'get_my_assignments');
+            
+            fetch('../assets/manageAssignments.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('upcomingDeadlines');
+                
+                if (data.status === 'success' && data.assignments) {
+                    const now = new Date();
+                    const upcoming = data.assignments
+                        .filter(a => !a.submission_id && new Date(a.due_date) > now)
+                        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+                        .slice(0, 5);
+                    
+                    if (upcoming.length > 0) {
+                        let html = '';
+                        upcoming.forEach(assignment => {
+                            const dueDate = new Date(assignment.due_date);
+                            const timeLeft = dueDate - now;
+                            const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+                            const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            
+                            const isUrgent = daysLeft < 2;
+                            let timeDisplay = '';
+                            if (daysLeft > 0) {
+                                timeDisplay = `${daysLeft} day${daysLeft > 1 ? 's' : ''} ${hoursLeft}h`;
+                            } else {
+                                timeDisplay = `${hoursLeft} hours`;
+                            }
+                            
+                            html += `
+                                <div class="deadline-item ${isUrgent ? 'urgent' : ''}">
+                                    <div class="deadline-title">${assignment.title}</div>
+                                    <div class="deadline-time ${isUrgent ? 'urgent' : ''}">
+                                        <i class='bx bx-time-five'></i>
+                                        Due in ${timeDisplay}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<p class="loading-text">🎉 No pending deadlines!</p>';
+                    }
+                } else {
+                    container.innerHTML = '<p class="loading-text">No assignments found</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading deadlines:', error);
+                document.getElementById('upcomingDeadlines').innerHTML = 
+                    '<p class="loading-text">Error loading deadlines</p>';
+            });
+        }
+
+        // Initialize Achievements
+        function initializeAchievements() {
+            // Check for achievements based on performance
+            fetch('../assets/manageExams.php?action=get_my_stats')
+                .then(response => response.json())
+                .then(examData => {
+                    if (examData.status === 'success') {
+                        // Top Performer badge: average >= 90%
+                        if (parseInt(examData.stats.average) >= 90) {
+                            unlockBadge('top-performer');
+                        }
+                    }
+                });
+            
+            // Check assignments for Task Master and Early Bird
+            const formData = new FormData();
+            formData.append('action', 'get_my_assignments');
+            
+            fetch('../assets/manageAssignments.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.assignments) {
+                    const completed = data.assignments.filter(a => a.submission_id).length;
+                    
+                    // Task Master badge: 10 completed assignments
+                    if (completed >= 10) {
+                        unlockBadge('task-master');
+                    }
+                    
+                    // Early Bird badge: 5 early submissions
+                    const earlySubmissions = data.assignments.filter(a => {
+                        if (a.submission_id && a.submitted_at && a.due_date) {
+                            return new Date(a.submitted_at) < new Date(a.due_date);
+                        }
+                        return false;
+                    }).length;
+                    
+                    if (earlySubmissions >= 5) {
+                        unlockBadge('early-bird');
+                    }
+                }
+            });
+        }
+
+        function unlockBadge(badgeName) {
+            const badge = document.querySelector(`[data-achievement="${badgeName}"]`);
+            if (badge && !badge.classList.contains('earned')) {
+                badge.classList.add('earned');
+                
+                // Show celebration effect
+                const icon = badge.querySelector('.badge-icon');
+                icon.style.animation = 'none';
+                setTimeout(() => {
+                    icon.style.animation = 'badge-glow 2s infinite';
+                }, 10);
+            }
+        }
+
+        // Welcome Animation on Load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                createConfetti();
+            }, 500);
+            
+            displayRandomQuote();
+            loadQuickStats();
+        });
+
+        // Refresh quote every 30 seconds
+        setInterval(displayRandomQuote, 30000);
+
+        // Add gradient animation to welcome banner
+        let hue = 260;
+        setInterval(() => {
+            hue = (hue + 1) % 360;
+            const banner = document.querySelector('.welcome-banner');
+            if (banner) {
+                banner.style.background = `linear-gradient(135deg, hsl(${hue}, 70%, 65%) 0%, hsl(${(hue + 20) % 360}, 70%, 60%) 100%)`;
+            }
+        }, 100);
+
+        // Add typing effect to welcome text
+        function typeWriter(element, text, speed = 50) {
+            let i = 0;
+            element.textContent = '';
+            function type() {
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                }
+            }
+            type();
+        }
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all cards
+        document.querySelectorAll('.stat-card, .enhanced-card, .leaves, .timetable').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'all 0.6s ease';
+            observer.observe(el);
+        });
+
+        console.log('🎓 Enhanced Dashboard Loaded! Enjoy your learning journey! 🚀');
     </script>
 
     <script type="text/javascript" src="app.js"></script>

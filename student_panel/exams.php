@@ -77,6 +77,29 @@ $id = $_SESSION['uid'];
         body::-webkit-scrollbar {
             display: none;
         }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 16px;
+            background: var(--color-primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: var(--color-primary-variant);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .download-btn .material-icons-sharp {
+            font-size: 1.2rem;
+        }
     </style>
 </head>
 
@@ -123,7 +146,12 @@ $id = $_SESSION['uid'];
 
     <main>
         <div class="exam timetable">
-            <h2>Exam Results</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 style="margin: 0;">Exam Results</h2>
+                <a href="download_report_card.php" class="download-btn" target="_blank">
+                    <span class="material-icons-sharp">download</span> Download Report Card
+                </a>
+            </div>
             <h2><?php echo "<a href='exam.php'>View All Results</a> | <a href='progress.php'>Progress Report</a>"; ?></h2>
 
             <input id="gfg" class="marks-table-search-box" type="text" placeholder="Search for Title, Date, Subjects or Grade">
@@ -143,55 +171,73 @@ $id = $_SESSION['uid'];
                 </thead>
                 <tbody id="geeks">
                     <?php
-                    // Get student's class and section
-                    $student_query = "SELECT class, section FROM students WHERE id = ?";
-                    $student_stmt = $conn->prepare($student_query);
-                    $student_stmt->bind_param("s", $id);
-                    $student_stmt->execute();
-                    $student_result = $student_stmt->get_result();
-                    $student_data = $student_result->fetch_assoc();
-                    $student_stmt->close();
+                    // Check if database connection exists
+                    if (!isset($conn)) {
+                        echo '<tr><td colspan="8" style="text-align:center;color:red;">Database connection error</td></tr>';
+                    } else {
+                        // Get student's class and section
+                        $student_query = "SELECT class, section FROM students WHERE id = ?";
+                        $student_stmt = $conn->prepare($student_query);
+                        $student_stmt->bind_param("s", $id);
+                        $student_stmt->execute();
+                        $student_result = $student_stmt->get_result();
+                        $student_data = $student_result->fetch_assoc();
+                        $student_stmt->close();
 
-                    // Get results from new exam_results table
-                    $query_new = "SELECT er.*, e.exam_title, e.subject, e.exam_date, e.timestamp, e.total_marks as exam_total, e.passing_marks 
-                                  FROM exam_results er 
-                                  JOIN exams e ON er.exam_id = e.exam_id 
-                                  WHERE er.student_id = ?
-                                  ORDER BY e.timestamp DESC";
-                    $stmt_new = $conn->prepare($query_new);
-                    $stmt_new->bind_param("s", $id);
-                    $stmt_new->execute();
-                    $result_new = $stmt_new->get_result();
+                        // Check if exam_results table exists
+                        $checkTable = mysqli_query($conn, "SHOW TABLES LIKE 'exam_results'");
+                        
+                        if (!$checkTable || mysqli_num_rows($checkTable) == 0) {
+                            echo '<tr><td colspan="8" style="text-align:center;padding-top: 3rem;">
+                                  Exam results system not set up yet. Please contact administrator.
+                                  </td></tr>';
+                        } else {
+                            // Get results from exam_results table
+                            $query_new = "SELECT er.*, e.exam_title, e.subject, e.exam_date, e.timestamp, e.total_marks as exam_total, e.passing_marks 
+                                          FROM exam_results er 
+                                          JOIN exams e ON er.exam_id = e.exam_id 
+                                          WHERE er.student_id = ?
+                                          ORDER BY e.timestamp DESC";
+                            $stmt_new = $conn->prepare($query_new);
+                            
+                            if (!$stmt_new) {
+                                echo '<tr><td colspan="8" style="text-align:center;color:red;">Query error: ' . htmlspecialchars($conn->error) . '</td></tr>';
+                            } else {
+                                $stmt_new->bind_param("s", $id);
+                                $stmt_new->execute();
+                                $result_new = $stmt_new->get_result();
 
-                    $hasResults = false;
+                                $hasResults = false;
 
-                    if ($result_new->num_rows > 0) {
-                        $hasResults = true;
-                        while ($row = $result_new->fetch_assoc()) {
-                            $dateDB = $row['exam_date'] ?? $row['timestamp'];
-                            $formattedDate = date("d-m-Y", strtotime($dateDB));
+                                if ($result_new && $result_new->num_rows > 0) {
+                                    $hasResults = true;
+                                    while ($row = $result_new->fetch_assoc()) {
+                                        $dateDB = $row['exam_date'] ?? $row['timestamp'];
+                                        $formattedDate = date("d-m-Y", strtotime($dateDB));
 
-                            $statusColor = $row['status'] == 'pass' ? 'green' : 'red';
-                            $statusText = ucfirst($row['status']);
+                                        $statusColor = $row['status'] == 'pass' ? 'green' : 'red';
+                                        $statusText = ucfirst($row['status']);
 
-                            echo "<tr>
-                                    <td>$formattedDate</td>
-                                    <td>{$row['subject']}</td>
-                                    <td>{$row['exam_title']}</td>
-                                    <td style='text-align:center;'>{$row['marks_obtained']}</td>
-                                    <td style='text-align:center;'>{$row['total_marks']}</td>
-                                    <td style='text-align:center;'>" . number_format($row['percentage'], 1) . "%</td>
-                                    <td style='text-align:center; font-weight:bold; color:$statusColor;'>{$row['grade']}</td>
-                                    <td style='color:$statusColor; text-align:center;'>$statusText</td>
-                                  </tr>";
+                                        echo "<tr>
+                                                <td>$formattedDate</td>
+                                                <td>{$row['subject']}</td>
+                                                <td>{$row['exam_title']}</td>
+                                                <td style='text-align:center;'>{$row['marks_obtained']}</td>
+                                                <td style='text-align:center;'>{$row['total_marks']}</td>
+                                                <td style='text-align:center;'>" . number_format($row['percentage'], 1) . "%</td>
+                                                <td style='text-align:center; font-weight:bold; color:$statusColor;'>{$row['grade']}</td>
+                                                <td style='color:$statusColor; text-align:center;'>$statusText</td>
+                                              </tr>";
+                                    }
+                                }
+                                $stmt_new->close();
+
+                                if (!$hasResults) {
+                                    echo '<tr><td colspan="8" style="text-align:center;padding-top: 3rem;">No exam results available yet</td></tr>';
+                                }
+                            }
                         }
                     }
-                    $stmt_new->close();
-
-                    if (!$hasResults) {
-                        echo '<tr><td colspan="8" style="text-align:center;padding-top: 3rem;">No exam results available yet</td></tr>';
-                    }
-
                     ?>
                 </tbody>
             </table>

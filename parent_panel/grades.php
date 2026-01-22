@@ -37,6 +37,34 @@
             </div>
         </div>
 
+        <!-- Performance Summary Cards -->
+        <div id="performanceSummary" class="row mb-3" style="display: none;">
+            <div class="col-md-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+                    <div style="font-size: 14px; opacity: 0.9;">Total Exams</div>
+                    <div style="font-size: 32px; font-weight: 700;" id="totalExams">0</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+                    <div style="font-size: 14px; opacity: 0.9;">Average Score</div>
+                    <div style="font-size: 32px; font-weight: 700;" id="avgScore">0%</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+                    <div style="font-size: 14px; opacity: 0.9;">Highest Score</div>
+                    <div style="font-size: 32px; font-weight: 700;" id="highestScore">0%</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+                    <div style="font-size: 14px; opacity: 0.9;">Overall Grade</div>
+                    <div style="font-size: 32px; font-weight: 700;" id="overallGrade">-</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Grades Table -->
         <div class="bottom-data mt-3">
             <div class="orders full-width">
@@ -44,7 +72,7 @@
                     <i class='bx bx-file'></i>
                     <h3>Grade Reports</h3>
                     <button class="btn btn-sm btn-primary" onclick="downloadReport()">
-                        <i class='bx bx-download'></i> Download
+                        <i class='bx bx-download'></i> Download Report Card
                     </button>
                 </div>
                 
@@ -166,53 +194,127 @@ function loadGrades() {
 function displayGrades(grades) {
     const content = document.getElementById('gradesContent');
     
-    // Group by exam/subject
-    let html = '<div class="table-responsive"><table class="table table-striped">';
-    html += `
-        <thead>
-            <tr style="background: #667eea; color: white;">
-                <th>Exam</th>
-                <th>Subject</th>
-                <th>Marks Obtained</th>
-                <th>Total Marks</th>
-                <th>Percentage</th>
-                <th>Status</th>
-                <th>Date</th>
-            </tr>
-        </thead>
-        <tbody>
-    `;
+    // Calculate statistics
+    let totalPercentage = 0;
+    let highestPercentage = 0;
+    grades.forEach(g => {
+        const perc = parseFloat(g.percentage || 0);
+        totalPercentage += perc;
+        if (perc > highestPercentage) highestPercentage = perc;
+    });
+    const avgPercentage = (totalPercentage / grades.length).toFixed(2);
     
+    // Update summary cards
+    document.getElementById('performanceSummary').style.display = 'flex';
+    document.getElementById('totalExams').textContent = grades.length;
+    document.getElementById('avgScore').textContent = avgPercentage + '%';
+    document.getElementById('highestScore').textContent = highestPercentage.toFixed(2) + '%';
+    document.getElementById('overallGrade').textContent = getGradeFromPercentage(avgPercentage);
+    
+    // Group by exam
+    const groupedGrades = {};
     grades.forEach(grade => {
-        const statusColor = grade.status === 'Pass' ? '#10b981' : '#ef4444';
-        const percentageColor = grade.percentage >= 75 ? '#10b981' : grade.percentage >= 50 ? '#f59e0b' : '#ef4444';
+        const examName = grade.exam_name || 'Unknown Exam';
+        if (!groupedGrades[examName]) {
+            groupedGrades[examName] = [];
+        }
+        groupedGrades[examName].push(grade);
+    });
+    
+    let html = '';
+    
+    Object.keys(groupedGrades).forEach(examName => {
+        const examGrades = groupedGrades[examName];
+        let examTotal = 0;
+        let examObtained = 0;
         
         html += `
-            <tr>
-                <td><strong>${grade.exam_name || 'N/A'}</strong></td>
-                <td>${grade.subject_display || grade.subject || 'N/A'}</td>
-                <td>${grade.marks_obtained || '0'}</td>
-                <td>${grade.total_marks || '0'}</td>
-                <td><span style="background: ${percentageColor}; color: white; padding: 5px 10px; border-radius: 12px;">${grade.percentage}%</span></td>
-                <td><span style="background: ${statusColor}; color: white; padding: 5px 10px; border-radius: 12px;">${grade.status}</span></td>
-                <td>${formatDate(grade.exam_date)}</td>
-            </tr>
+            <div class="card mb-3" style="border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.1); border-radius: 15px; overflow: hidden;">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px;">
+                    <h5 class="mb-0"><i class='bx bx-book-open'></i> ${examName}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead style="background: #f8f9fa;">
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Marks</th>
+                                    <th>Total</th>
+                                    <th>Percentage</th>
+                                    <th>Grade</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+        `;
+        
+        examGrades.forEach(grade => {
+            const percentage = parseFloat(grade.percentage || 0);
+            const gradeValue = getGradeFromPercentage(percentage);
+            const statusClass = grade.status === 'Pass' ? 'success' : 'danger';
+            const percentageClass = percentage >= 90 ? 'success' : 
+                                  percentage >= 75 ? 'primary' : 
+                                  percentage >= 60 ? 'warning' : 'danger';
+            
+            examObtained += parseFloat(grade.marks_obtained || 0);
+            examTotal += parseFloat(grade.total_marks || 0);
+            
+            html += `
+                <tr>
+                    <td><strong>${grade.subject_display || grade.subject || 'N/A'}</strong></td>
+                    <td>${grade.marks_obtained || '0'}</td>
+                    <td>${grade.total_marks || '0'}</td>
+                    <td>
+                        <div class="progress" style="height: 25px; border-radius: 12px;">
+                            <div class="progress-bar bg-${percentageClass}" style="width: ${percentage}%; font-weight: 600;">
+                                ${percentage.toFixed(1)}%
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="badge bg-${percentageClass}" style="font-size: 14px; padding: 8px 12px;">${gradeValue}</span></td>
+                    <td><span class="badge bg-${statusClass}" style="font-size: 14px; padding: 8px 12px;">${grade.status || 'N/A'}</span></td>
+                </tr>
+            `;
+        });
+        
+        const examPercentage = examTotal > 0 ? ((examObtained / examTotal) * 100).toFixed(2) : 0;
+        const examGrade = getGradeFromPercentage(examPercentage);
+        const examGradeClass = examPercentage >= 90 ? 'success' : 
+                             examPercentage >= 75 ? 'primary' : 
+                             examPercentage >= 60 ? 'warning' : 'danger';
+        
+        html += `
+                            </tbody>
+                            <tfoot style="background: #f8f9fa; font-weight: 600;">
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Overall Performance:</strong></td>
+                                    <td colspan="3">
+                                        <span class="badge bg-${examGradeClass}" style="font-size: 16px; padding: 10px 20px;">
+                                            ${examPercentage}% - Grade ${examGrade}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
         `;
     });
     
-    html += '</tbody></table></div>';
-    
-    // Add summary
-    const totalPercentage = grades.reduce((sum, g) => sum + parseFloat(g.percentage), 0) / grades.length;
-    html += `
-        <div class="alert alert-info mt-3">
-            <h5>Overall Performance</h5>
-            <p><strong>Average:</strong> ${totalPercentage.toFixed(2)}%</p>
-            <p><strong>Total Exams:</strong> ${grades.length}</p>
-        </div>
-    `;
-    
     content.innerHTML = html;
+}
+
+function getGradeFromPercentage(percentage) {
+    const p = parseFloat(percentage);
+    if (p >= 90) return 'A+';
+    if (p >= 80) return 'A';
+    if (p >= 70) return 'B+';
+    if (p >= 60) return 'B';
+    if (p >= 50) return 'C';
+    if (p >= 40) return 'D';
+    return 'F';
 }
 
 function downloadReport() {
@@ -221,7 +323,7 @@ function downloadReport() {
         alert('Please select a child first');
         return;
     }
-    window.location.href = `../assets/downloadReport.php?student_id=${studentId}&type=grades`;
+    window.open(`../assets/download_report_card.php?student_id=${studentId}`, '_blank');
 }
 
 function formatDate(dateStr) {

@@ -44,6 +44,109 @@
     <!-- End of Navbar -->
 
     <main>
+        <!-- Welcome Banner -->
+        <div class="admin-welcome-banner">
+            <h2>👋 Welcome Back, Admin!</h2>
+            <p>✨ Here's what's happening with your school today</p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="admin-quick-actions">
+            <a href="student_management.php" class="admin-action-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="admin-action-icon">👥</div>
+                <div class="admin-action-text">
+                    <h4>Manage Students</h4>
+                    <p>Add or edit students</p>
+                </div>
+            </a>
+            <a href="teacher.php" class="admin-action-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="admin-action-icon">👨‍🏫</div>
+                <div class="admin-action-text">
+                    <h4>Manage Teachers</h4>
+                    <p>View teacher list</p>
+                </div>
+            </a>
+            <a href="exams.php" class="admin-action-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="admin-action-icon">📝</div>
+                <div class="admin-action-text">
+                    <h4>Exams</h4>
+                    <p>Manage examinations</p>
+                </div>
+            </a>
+            <a href="announcements.php" class="admin-action-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <div class="admin-action-icon">📢</div>
+                <div class="admin-action-text">
+                    <h4>Announcements</h4>
+                    <p>Post updates</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Achievement Badges -->
+        <div class="admin-achievements">
+            <h3><i class='bx bx-trophy'></i> Admin Achievements</h3>
+            <div class="admin-badges-grid">
+                <div class="admin-badge-item earned" title="System Master">
+                    <div class="admin-badge-icon">👑</div>
+                    <div class="admin-badge-name">Master</div>
+                </div>
+                <div class="admin-badge-item" title="100+ Students managed">
+                    <div class="admin-badge-icon">🎓</div>
+                    <div class="admin-badge-name">Manager</div>
+                </div>
+                <div class="admin-badge-item" title="50+ Exams created">
+                    <div class="admin-badge-icon">📊</div>
+                    <div class="admin-badge-name">Organizer</div>
+                </div>
+                <div class="admin-badge-item" title="100+ Announcements">
+                    <div class="admin-badge-icon">📣</div>
+                    <div class="admin-badge-name">Communicator</div>
+                </div>
+                <div class="admin-badge-item" title="Active 30 days">
+                    <div class="admin-badge-icon">⚡</div>
+                    <div class="admin-badge-name">Active</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Work Timer & Quick Stats -->
+        <div class="admin-dashboard-grid">
+            <div class="admin-timer-card">
+                <div class="admin-card-header">
+                    <h3><i class='bx bx-timer'></i> Work Timer</h3>
+                </div>
+                <div class="admin-timer-circle">
+                    <div class="admin-timer-text" id="adminTimerDisplay">00:00</div>
+                </div>
+                <div class="admin-timer-controls">
+                    <button class="admin-timer-btn admin-start-btn" id="adminStartBtn" onclick="startAdminTimer()">
+                        <i class='bx bx-play'></i> Start
+                    </button>
+                    <button class="admin-timer-btn admin-pause-btn" id="adminPauseBtn" onclick="pauseAdminTimer()" style="display:none;">
+                        <i class='bx bx-pause'></i> Pause
+                    </button>
+                    <button class="admin-timer-btn admin-reset-btn" onclick="resetAdminTimer()">
+                        <i class='bx bx-reset'></i> Reset
+                    </button>
+                </div>
+                <div style="text-align: center; color: #777;">
+                    <small>Today: <strong id="adminTodayTime">0h 0m</strong></small>
+                </div>
+            </div>
+
+            <div class="admin-dashboard-card">
+                <div class="admin-card-header">
+                    <h3><i class='bx bx-trending-up'></i> Recent Activity</h3>
+                </div>
+                <div id="adminRecentActivity">
+                    <div class="admin-activity-item">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 3px;">System Active</div>
+                        <div style="color: #777; font-size: 0.85rem;"><i class='bx bx-time-five'></i> Just now</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="header">
             <div class="left">
                 <h1>Dashboard</h1>

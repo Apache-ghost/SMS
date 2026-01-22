@@ -340,20 +340,36 @@ function saveExam() {
 
 function publishResults(examId, examTitle) {
     currentExamId = examId;
+    console.log('publishResults called with examId:', examId, 'examTitle:', examTitle);
+    
     const modal = new bootstrap.Modal(document.getElementById('publishResultsModal'));
     document.querySelector('#publishResultsModal .modal-title').textContent = `Publish Results: ${examTitle}`;
     
     const content = document.getElementById('resultsContent');
     content.innerHTML = '<div class="text-center"><div class="spinner-border"></div><p>Loading students...</p></div>';
     
-    fetch(`../assets/manageExams.php?action=get_students_for_exam&exam_id=${examId}`)
+    const url = `../assets/manageExams.php?action=get_students_for_exam&exam_id=${examId}`;
+    console.log('Fetching from:', url);
+    
+    fetch(url)
         .then(response => response.json())
         .then(data => {
+            console.log('Received data:', data);
+            
             if (data.status === 'success' && data.students) {
-                displayResultsForm(data.students, data.exam);
+                if (data.students.length === 0) {
+                    content.innerHTML = '<div class="alert alert-warning">No students found for this class/section. Please check if students are enrolled.</div>';
+                } else {
+                    displayResultsForm(data.students, data.exam);
+                }
             } else {
-                content.innerHTML = '<div class="alert alert-danger">Error loading students</div>';
+                content.innerHTML = `<div class="alert alert-danger">Error loading students: ${data.message || 'Unknown error'}</div>`;
+                console.error('Error in response:', data);
             }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            content.innerHTML = `<div class="alert alert-danger">Network error: ${error.message}</div>`;
         });
     
     modal.show();
@@ -362,8 +378,14 @@ function publishResults(examId, examTitle) {
 function displayResultsForm(students, exam) {
     const content = document.getElementById('resultsContent');
     
+    if (!students || students.length === 0) {
+        content.innerHTML = '<div class="alert alert-warning">No students found for this exam</div>';
+        return;
+    }
+    
     let html = `
         <h6>Exam: ${exam.exam_title} | Total Marks: ${exam.total_marks} | Passing: ${exam.passing_marks}</h6>
+        <p class="text-muted">Class ${exam.class} - Section ${exam.section} | Students: ${students.length}</p>
         <table class="table table-sm">
             <thead>
                 <tr>
@@ -383,14 +405,15 @@ function displayResultsForm(students, exam) {
         
         html += `
             <tr>
-                <td>${student.roll || student.id}</td>
+                <td>${student.id}</td>
                 <td>${student.fname} ${student.lname}</td>
                 <td>
                     <input type="number" class="form-control form-control-sm" 
                            id="marks_${student.id}" 
                            value="${existingMarks}"
                            min="0" max="${exam.total_marks}"
-                           onchange="calculateGrade(${student.id}, ${exam.total_marks}, ${exam.passing_marks})">
+                           step="0.1"
+                           onchange="calculateGrade('${student.id}', ${exam.total_marks}, ${exam.passing_marks})">
                 </td>
                 <td>
                     <span id="grade_${student.id}" class="badge bg-secondary">-</span>
@@ -411,6 +434,17 @@ function displayResultsForm(students, exam) {
     // Store for later use
     window.currentStudents = students;
     window.currentExam = exam;
+    
+    console.log('Students loaded:', students.length);
+    console.log('Current students stored:', window.currentStudents);
+    console.log('Current exam stored:', window.currentExam);
+    
+    // Calculate existing grades
+    students.forEach(student => {
+        if (student.marks_obtained) {
+            calculateGrade(student.id, exam.total_marks, exam.passing_marks);
+        }
+    });
 }
 
 function calculateGrade(studentId, totalMarks, passingMarks) {
@@ -446,25 +480,41 @@ function calculateGrade(studentId, totalMarks, passingMarks) {
 }
 
 function saveResults() {
+    console.log('saveResults called');
+    console.log('currentStudents:', window.currentStudents);
+    console.log('currentExam:', window.currentExam);
+    console.log('currentExamId:', currentExamId);
+    
     if (!window.currentStudents || !window.currentExam) {
-        alert('⚠️ No data to save');
+        alert('⚠️ No data to save. Please try closing and reopening the results modal.');
+        console.error('Missing data - currentStudents:', window.currentStudents, 'currentExam:', window.currentExam);
         return;
     }
     
     const results = [];
     window.currentStudents.forEach(student => {
-        const marks = document.getElementById(`marks_${student.id}`).value;
-        if (marks !== '') {
+        const marksElement = document.getElementById(`marks_${student.id}`);
+        const remarksElement = document.getElementById(`remarks_${student.id}`);
+        
+        if (!marksElement) {
+            console.warn('Marks element not found for student:', student.id);
+            return;
+        }
+        
+        const marks = marksElement.value;
+        if (marks !== '' && marks !== null) {
             results.push({
                 student_id: student.id,
                 marks_obtained: marks,
-                remarks: document.getElementById(`remarks_${student.id}`).value
+                remarks: remarksElement ? remarksElement.value : ''
             });
         }
     });
     
+    console.log('Results collected:', results);
+    
     if (results.length === 0) {
-        alert('⚠️ Please enter at least one result');
+        alert('⚠️ Please enter at least one result. Make sure to enter marks in the input fields.');
         return;
     }
     
@@ -476,6 +526,12 @@ function saveResults() {
     formData.append('action', 'save_results');
     formData.append('exam_id', currentExamId);
     formData.append('results', JSON.stringify(results));
+    
+    console.log('Sending data:', {
+        action: 'save_results',
+        exam_id: currentExamId,
+        results: results
+    });
     
     fetch('../assets/manageExams.php', {
         method: 'POST',
