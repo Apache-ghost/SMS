@@ -1,6 +1,24 @@
 <?php
 include("config.php");
 
+// Handle GET request for simple teacher list (used by messages page)
+if ($_SERVER['REQUEST_METHOD'] == 'GET' || !isset($_POST['name'])) {
+    $query = "SELECT id, fname, lname, email, phone, subject FROM teachers ORDER BY fname, lname ASC";
+    $result = mysqli_query($conn, $query);
+    
+    $teachers = array();
+    if ($result && mysqli_num_rows($result) > 0) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $teachers[] = $row;
+        }
+    }
+    
+    header('Content-Type: application/json');
+    echo json_encode($teachers);
+    exit;
+}
+
+// Original POST functionality for search
 if (isset($_POST['name'])) {
     $name = $_POST['name'];
     $query = "";
@@ -86,7 +104,7 @@ if (isset($_POST['name'])) {
 
         mysqli_stmt_close($stmt);
     }
-} else {
-    echo "No name";
 }
+
+mysqli_close($conn);
 ?>

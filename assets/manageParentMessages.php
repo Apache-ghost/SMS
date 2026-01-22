@@ -1,6 +1,73 @@
 <?php
-// REQ-ACD-007: Parent-Teacher Messaging System
+// REQ-ACD-007: Parent-Teacher-Admin Messaging System
 include("config.php");
+session_start();
+
+// Handle GET requests (for fetch_messages)
+if ($_SERVER["REQUEST_METHOD"] == "GET") {
+    $action = $_GET["action"] ?? '';
+    
+    if ($action == "fetch_messages") {
+        // Get user info from session
+        $userType = $_SESSION['role'] ?? 'parent';
+        $userId = $_SESSION['id'] ?? $_SESSION['guardian_id'] ?? null;
+        
+        if (!$userId) {
+            echo json_encode(['status' => 'error', 'message' => 'User not authenticated']);
+            exit;
+        }
+        
+        // Fetch messages for the user
+        $sql = "SELECT m.*, 
+                       COALESCE(m.message_body, m.message) as message,
+                       COALESCE(m.recipient_id, m.receiver_id) as recipient_id,
+                       COALESCE(m.recipient_type, m.receiver_type) as recipient_type,
+                       COALESCE(m.sent_date, m.created_at) as sent_date,
+                       s.fname as student_fname, s.lname as student_lname,
+                       CASE 
+                         WHEN m.sender_type = 'teacher' THEN CONCAT(t.fname, ' ', t.lname)
+                         WHEN m.sender_type = 'parent' THEN CONCAT(pg.fname, ' ', pg.lname)
+                         WHEN m.sender_type = 'admin' THEN 'School Admin'
+                         ELSE 'System'
+                       END as sender_name,
+                       CASE 
+                         WHEN COALESCE(m.recipient_type, m.receiver_type) = 'teacher' THEN CONCAT(t2.fname, ' ', t2.lname)
+                         WHEN COALESCE(m.recipient_type, m.receiver_type) = 'parent' THEN CONCAT(pg2.fname, ' ', pg2.lname)
+                         WHEN COALESCE(m.recipient_type, m.receiver_type) = 'admin' THEN 'School Admin'
+                         ELSE 'System'
+                       END as recipient_name
+                FROM parent_messages m
+                LEFT JOIN students s ON m.student_id = s.id
+                LEFT JOIN teachers t ON m.sender_id = t.id AND m.sender_type = 'teacher'
+                LEFT JOIN parent_guardian pg ON m.sender_id = pg.guardian_id AND m.sender_type = 'parent'
+                LEFT JOIN teachers t2 ON COALESCE(m.recipient_id, m.receiver_id) = t2.id AND COALESCE(m.recipient_type, m.receiver_type) = 'teacher'
+                LEFT JOIN parent_guardian pg2 ON COALESCE(m.recipient_id, m.receiver_id) = pg2.guardian_id AND COALESCE(m.recipient_type, m.receiver_type) = 'parent'
+                WHERE ";
+        
+        if ($userType == 'admin') {
+            // Admin sees all messages sent to admin or sent by admin
+            $sql .= "(COALESCE(m.recipient_type, m.receiver_type) = 'admin' OR m.sender_type = 'admin')";
+        } else {
+            // Regular users see their own messages
+            $sql .= "((COALESCE(m.recipient_id, m.receiver_id) = '$userId' AND COALESCE(m.recipient_type, m.receiver_type) = '$userType') 
+                     OR (m.sender_id = '$userId' AND m.sender_type = '$userType'))";
+        }
+        
+        $sql .= " AND COALESCE(m.is_archived, 0) = 0 ORDER BY COALESCE(m.sent_date, m.created_at) DESC LIMIT 100";
+        
+        $result = mysqli_query($conn, $sql);
+        $messages = [];
+        
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $messages[] = $row;
+            }
+        }
+        
+        echo json_encode(['status' => 'success', 'messages' => $messages]);
+        exit;
+    }
+}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $action = $_POST["action"] ?? '';
@@ -8,12 +75,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Send message
     if ($action == "send_message") {
         $subject = mysqli_real_escape_string($conn, $_POST["subject"]);
-        $messageBody = mysqli_real_escape_string($conn, $_POST["message_body"]);
-        $senderId = mysqli_real_escape_string($conn, $_POST["sender_id"]);
-        $senderType = mysqli_real_escape_string($conn, $_POST["sender_type"]);
-        $recipientId = mysqli_real_escape_string($conn, $_POST["recipient_id"]);
-        $recipientType = mysqli_real_escape_string($conn, $_POST["recipient_type"]);
-        $studentId = mysqli_real_escape_string($conn, $_POST["student_id"] ?? null);
+        $messageBody = mysqli_real_escape_string($conn, $_POST["message_body"] ?? $_POST["message"] ?? '');
+        
+        // Determine sender (from session if not provided)
+        $senderId = mysqli_real_escape_string($conn, $_POST["sender_id"] ?? ($_SESSION['id'] ?? $_SESSION['guardian_id'] ?? ''));
+        $senderType = mysqli_real_escape_string($conn, $_POST["sender_type"] ?? ($_SESSION['role'] ?? 'parent'));
+        
+        // Get recipient info
+        $recipientId = mysqli_real_escape_string($conn, $_POST["recipient_id"] ?? $_POST["receiver_id"] ?? '');
+        $recipientType = mysqli_real_escape_string($conn, $_POST["recipient_type"] ?? $_POST["receiver_type"] ?? '');
+        
+        $studentId = mysqli_real_escape_string($conn, $_POST["student_id"] ?? '');
         $messageType = mysqli_real_escape_string($conn, $_POST["message_type"] ?? 'general');
         $priority = mysqli_real_escape_string($conn, $_POST["priority"] ?? 'normal');
         $parentMessageId = $_POST["parent_message_id"] ?? null;
@@ -21,14 +93,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         mysqli_begin_transaction($conn);
         
         try {
+            // Insert into both old and new column names for compatibility
             $sql = "INSERT INTO parent_messages 
-                    (subject, message_body, sender_id, sender_type, recipient_id, recipient_type,
-                     student_id, message_type, priority, parent_message_id, sent_date) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                    (subject, message, message_body, sender_id, sender_type, 
+                     receiver_id, receiver_type, recipient_id, recipient_type,
+                     student_id, message_type, priority, parent_message_id, sent_date, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
             
             $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param($stmt, "sssssssssi", 
-                $subject, $messageBody, $senderId, $senderType, $recipientId, $recipientType,
+            mysqli_stmt_bind_param($stmt, "ssssssssssssi", 
+                $subject, $messageBody, $messageBody, $senderId, $senderType, 
+                $recipientId, $recipientType, $recipientId, $recipientType,
                 $studentId, $messageType, $priority, $parentMessageId);
             
             if (!mysqli_stmt_execute($stmt)) {
@@ -184,6 +259,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // Get main message
         $sql = "SELECT m.*, 
+                       COALESCE(m.message_body, m.message) as message,
+                       COALESCE(m.message_body, m.message) as message_body,
+                       COALESCE(m.recipient_id, m.receiver_id) as recipient_id,
+                       COALESCE(m.recipient_type, m.receiver_type) as recipient_type,
+                       COALESCE(m.sent_date, m.created_at) as sent_date,
                        s.fname as student_fname, s.lname as student_lname,
                        CASE 
                          WHEN m.sender_type = 'teacher' THEN CONCAT(t.fname, ' ', t.lname)
@@ -191,16 +271,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                          ELSE 'Admin'
                        END as sender_name,
                        CASE 
-                         WHEN m.recipient_type = 'teacher' THEN CONCAT(t2.fname, ' ', t2.lname)
-                         WHEN m.recipient_type = 'parent' THEN CONCAT(pg2.fname, ' ', pg2.lname)
+                         WHEN COALESCE(m.recipient_type, m.receiver_type) = 'teacher' THEN CONCAT(t2.fname, ' ', t2.lname)
+                         WHEN COALESCE(m.recipient_type, m.receiver_type) = 'parent' THEN CONCAT(pg2.fname, ' ', pg2.lname)
                          ELSE 'Admin'
                        END as recipient_name
                 FROM parent_messages m
                 LEFT JOIN students s ON m.student_id = s.id
                 LEFT JOIN teachers t ON m.sender_id = t.id AND m.sender_type = 'teacher'
                 LEFT JOIN parent_guardian pg ON m.sender_id = pg.guardian_id AND m.sender_type = 'parent'
-                LEFT JOIN teachers t2 ON m.recipient_id = t2.id AND m.recipient_type = 'teacher'
-                LEFT JOIN parent_guardian pg2 ON m.recipient_id = pg2.guardian_id AND m.recipient_type = 'parent'
+                LEFT JOIN teachers t2 ON COALESCE(m.recipient_id, m.receiver_id) = t2.id AND COALESCE(m.recipient_type, m.receiver_type) = 'teacher'
+                LEFT JOIN parent_guardian pg2 ON COALESCE(m.recipient_id, m.receiver_id) = pg2.guardian_id AND COALESCE(m.recipient_type, m.receiver_type) = 'parent'
                 WHERE m.message_id = ?";
         
         $stmt = mysqli_prepare($conn, $sql);
@@ -223,6 +303,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // Get replies
         $repliesSql = "SELECT m.*, 
+                              COALESCE(m.message_body, m.message) as message,
+                              COALESCE(m.message_body, m.message) as message_body,
+                              COALESCE(m.sent_date, m.created_at) as sent_date,
                               CASE 
                                 WHEN m.sender_type = 'teacher' THEN CONCAT(t.fname, ' ', t.lname)
                                 WHEN m.sender_type = 'parent' THEN CONCAT(pg.fname, ' ', pg.lname)
@@ -232,7 +315,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                        LEFT JOIN teachers t ON m.sender_id = t.id AND m.sender_type = 'teacher'
                        LEFT JOIN parent_guardian pg ON m.sender_id = pg.guardian_id AND m.sender_type = 'parent'
                        WHERE m.parent_message_id = ?
-                       ORDER BY m.sent_date ASC";
+                       ORDER BY COALESCE(m.sent_date, m.created_at) ASC";
         
         $stmtReplies = mysqli_prepare($conn, $repliesSql);
         mysqli_stmt_bind_param($stmtReplies, "i", $messageId);

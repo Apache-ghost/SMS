@@ -22,7 +22,7 @@
             <div class="orders full-width">
                 <div class="header">
                     <i class='bx bx-message-dots'></i>
-                    <h3>Teacher-Parent Messages</h3>
+                    <h3>Messages</h3>
                     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#composeModal">
                         <i class='bx bx-plus'></i> New Message
                     </button>
@@ -51,15 +51,16 @@
             <div class="modal-body">
                 <form id="composeForm">
                     <div class="mb-3">
-                        <label>Select Child</label>
-                        <select class="form-select" id="childSelectMsg" required>
-                            <option value="">Loading...</option>
+                        <label>Select Child (Optional)</label>
+                        <select class="form-select" id="childSelectMsg">
+                            <option value="">-- Not related to specific child --</option>
                         </select>
+                        <small class="text-muted">Select a child if the message is about them specifically</small>
                     </div>
                     <div class="mb-3">
-                        <label>To (Teacher)</label>
+                        <label>To (Teacher/Admin)</label>
                         <select class="form-select" id="teacherSelect" required>
-                            <option value="">Select teacher...</option>
+                            <option value="">Select recipient...</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -134,12 +135,18 @@ function loadChildrenForMsg() {
     .then(data => {
         const select = document.getElementById('childSelectMsg');
         if (data.status === 'success' && data.children.length > 0) {
-            let html = '<option value="">-- Select Child --</option>';
+            let html = '<option value="">-- Not related to specific child --</option>';
             data.children.forEach(child => {
                 html += `<option value="${child.id}">${child.name}</option>`;
             });
             select.innerHTML = html;
+        } else {
+            select.innerHTML = '<option value="">-- Not related to specific child --</option>';
         }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        document.getElementById('childSelectMsg').innerHTML = '<option value="">-- Not related to specific child --</option>';
     });
 }
 
@@ -176,11 +183,11 @@ function sendMessage() {
     const formData = new FormData();
     formData.append('action', 'send_message');
     formData.append('student_id', studentId || '');
-    formData.append('receiver_type', receiverId === 'admin' ? 'admin' : 'teacher');
-    formData.append('receiver_id', receiverId);
+    formData.append('recipient_type', receiverId === 'admin' ? 'admin' : 'teacher');
+    formData.append('recipient_id', receiverId);
     formData.append('receiver_name', receiverId === 'admin' ? 'School Admin' : 'Teacher');
     formData.append('subject', subject);
-    formData.append('message', message);
+    formData.append('message_body', message);
     
     fetch('../assets/manageParentMessages.php', {
         method: 'POST',

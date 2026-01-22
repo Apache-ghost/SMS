@@ -55,6 +55,8 @@
 </div>
 
 <script>
+let myChildren = [];
+
 document.addEventListener('DOMContentLoaded', function() {
     loadChildren();
 });
@@ -70,6 +72,7 @@ function loadChildren() {
         const select = document.getElementById('childSelect');
         
         if (data.status === 'success' && data.children.length > 0) {
+            myChildren = data.children; // Store children list
             let html = '<option value="" data-class="" data-section="">-- Select Child --</option>';
             
             data.children.forEach(child => {

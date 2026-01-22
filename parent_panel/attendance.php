@@ -49,16 +49,10 @@
 </div>
 
 <script>
+let myChildren = [];
+
 document.addEventListener('DOMContentLoaded', function() {
     loadChildren();
-    const urlParams = new URLSearchParams(window.location.search);
-    const studentId = urlParams.get('student_id');
-    if (studentId) {
-        setTimeout(() => {
-            document.getElementById('childSelect').value = studentId;
-            loadAttendance();
-        }, 500);
-    }
 });
 
 function loadChildren() {
@@ -71,11 +65,27 @@ function loadChildren() {
     .then(data => {
         const select = document.getElementById('childSelect');
         if (data.status === 'success' && data.children.length > 0) {
+            myChildren = data.children; // Store children list
             let html = '<option value="">-- Select Child --</option>';
             data.children.forEach(child => {
                 html += `<option value="${child.id}">${child.name} (Class ${child.class})</option>`;
             });
             select.innerHTML = html;
+            
+            // Check URL parameter AFTER loading children
+            const urlParams = new URLSearchParams(window.location.search);
+            const studentId = urlParams.get('student_id');
+            if (studentId) {
+                // Verify this student belongs to parent
+                const isMyChild = myChildren.some(child => child.id === studentId);
+                if (isMyChild) {
+                    select.value = studentId;
+                    loadAttendance();
+                } else {
+                    alert('⚠️ You do not have access to this student\'s data');
+                    window.location.href = 'attendance.php';
+                }
+            }
         } else {
             select.innerHTML = '<option value="">No children found</option>';
         }

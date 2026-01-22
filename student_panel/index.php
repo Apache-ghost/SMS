@@ -152,7 +152,7 @@
                 <span class="material-icons-sharp">today</span>
                 <h3>Time Table</h3>
             </a>
-            <a href="exam.php">
+            <a href="exams.php">
                 <span class="material-icons-sharp">grid_view</span>
                 <h3>Examination</h3>
             </a>

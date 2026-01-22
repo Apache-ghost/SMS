@@ -1,7 +1,15 @@
 <?php
 // Parent Portal Login Handler
-include("config.php");
+error_reporting(0); // Suppress all errors/warnings
+ini_set('display_errors', 0);
+
 session_start();
+include("config.php");
+
+// Set JSON header for all responses except login redirects
+if (isset($_POST['action']) && $_POST['action'] != 'login') {
+    header('Content-Type: application/json');
+}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $action = $_POST["action"] ?? '';
@@ -612,6 +620,195 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         
         echo json_encode(['status' => 'success', 'data' => $stats]);
+    }
+    
+    // Get all parents for admin panel
+    else if ($action == "get_all_parents") {
+        // Check if parent_users table exists
+        $checkTable = @mysqli_query($conn, "SHOW TABLES LIKE 'parent_users'");
+        
+        if (!$checkTable || mysqli_num_rows($checkTable) == 0) {
+            // Table doesn't exist, return empty list
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'success', 'parents' => [], 'message' => 'Parent users table not found. Click Sync Parents to create it.']);
+            exit();
+        }
+        
+        $sql = "SELECT 
+                    pu.parent_user_id,
+                    pu.guardian_id,
+                    pu.is_active,
+                    pu.last_login,
+                    COALESCE(sg.gname, 'Unknown') AS fname,
+                    '' AS lname,
+                    COALESCE(sg.email, pu.email, 'N/A') AS email,
+                    COALESCE(sg.phone, 'N/A') AS phone,
+                    COUNT(DISTINCT spl.student_id) AS children_count
+                FROM parent_users pu
+                LEFT JOIN student_guardian sg ON pu.guardian_id = sg.id
+                LEFT JOIN student_parent_link spl ON sg.id = spl.parent_id
+                GROUP BY pu.parent_user_id
+                ORDER BY fname ASC";
+        
+        $result = @mysqli_query($conn, $sql);
+        
+        if ($result) {
+            $parents = [];
+            while ($row = mysqli_fetch_assoc($result)) {
+                $parents[] = $row;
+            }
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'success', 'parents' => $parents]);
+        } else {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Database query failed']);
+        }
+    }
+    
+    // Get portal statistics for admin
+    else if ($action == "get_portal_stats") {
+        $stats = [];
+        
+        // Check if parent_users table exists
+        $checkTable = @mysqli_query($conn, "SHOW TABLES LIKE 'parent_users'");
+        
+        if (!$checkTable || mysqli_num_rows($checkTable) == 0) {
+            // Return zeros if table doesn't exist
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'success', 'stats' => [
+                'total_parents' => 0,
+                'active_accounts' => 0,
+                'logins_today' => 0,
+                'total_messages' => 0
+            ]]);
+            exit();
+        }
+        
+        // Total parents
+        $result = @mysqli_query($conn, "SELECT COUNT(*) as count FROM parent_users");
+        $stats['total_parents'] = $result ? mysqli_fetch_assoc($result)['count'] : 0;
+        
+        // Active accounts
+        $result = @mysqli_query($conn, "SELECT COUNT(*) as count FROM parent_users WHERE is_active = 1");
+        $stats['active_accounts'] = $result ? mysqli_fetch_assoc($result)['count'] : 0;
+        
+        // Logins today
+        $result = @mysqli_query($conn, "SELECT COUNT(*) as count FROM parent_users WHERE DATE(last_login) = CURDATE()");
+        $stats['logins_today'] = $result ? mysqli_fetch_assoc($result)['count'] : 0;
+        
+        // Total messages
+        $result = @mysqli_query($conn, "SELECT COUNT(*) as count FROM parent_messages WHERE sender_type = 'parent'");
+        $stats['total_messages'] = $result ? mysqli_fetch_assoc($result)['count'] : 0;
+        
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'success', 'stats' => $stats]);
+    }
+    
+    // Get parent details
+    else if ($action == "get_parent_details") {
+        $guardianId = mysqli_real_escape_string($conn, $_POST['guardian_id']);
+        
+        // Get parent info
+        $sql = "SELECT sg.*, pu.email AS user_email, pu.is_active, pu.last_login
+                FROM student_guardian sg
+                LEFT JOIN parent_users pu ON sg.id = pu.guardian_id
+                WHERE sg.id = ?";
+        
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "s", $guardianId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $parent = mysqli_fetch_assoc($result);
+        
+        // Get children
+        $childrenSql = "SELECT s.id, CONCAT(s.fname, ' ', s.lname) AS name, s.class, s.section
+                        FROM students s
+                        INNER JOIN student_parent_link spl ON s.id = spl.student_id
+                        WHERE spl.parent_id = ?";
+        
+        $stmtChildren = mysqli_prepare($conn, $childrenSql);
+        mysqli_stmt_bind_param($stmtChildren, "s", $guardianId);
+        mysqli_stmt_execute($stmtChildren);
+        $resultChildren = mysqli_stmt_get_result($stmtChildren);
+        
+        $children = [];
+        while ($row = mysqli_fetch_assoc($resultChildren)) {
+            $children[] = $row;
+        }
+        
+        echo json_encode([
+            'status' => 'success',
+            'parent' => [
+                'fname' => $parent['gname'],
+                'lname' => '',
+                'email' => $parent['user_email'] ?: $parent['email'],
+                'phone' => $parent['phone']
+            ],
+            'children' => $children
+        ]);
+    }
+    
+    // Reset parent password
+    else if ($action == "reset_parent_password") {
+        $guardianId = mysqli_real_escape_string($conn, $_POST['guardian_id']);
+        
+        // Generate new password
+        $newPassword = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 8);
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        
+        $sql = "UPDATE parent_users SET password = ? WHERE guardian_id = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "ss", $hashedPassword, $guardianId);
+        
+        if (mysqli_stmt_execute($stmt)) {
+            echo json_encode(['status' => 'success', 'new_password' => $newPassword]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => mysqli_error($conn)]);
+        }
+    }
+    
+    // Sync parents from student_guardian table
+    else if ($action == "sync_parents") {
+        // First, create parent_users table if it doesn't exist
+        $createTableSql = "CREATE TABLE IF NOT EXISTS `parent_users` (
+            `parent_user_id` INT AUTO_INCREMENT PRIMARY KEY,
+            `guardian_id` VARCHAR(20) UNIQUE NOT NULL,
+            `email` VARCHAR(100) UNIQUE NOT NULL,
+            `password` VARCHAR(255) NOT NULL,
+            `is_active` TINYINT(1) DEFAULT 1,
+            `last_login` DATETIME NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (`guardian_id`) REFERENCES `student_guardian`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+        
+        mysqli_query($conn, $createTableSql);
+        
+        // Get all guardians not yet in parent_users
+        $sql = "SELECT sg.* 
+                FROM student_guardian sg
+                LEFT JOIN parent_users pu ON sg.id = pu.guardian_id
+                WHERE pu.parent_user_id IS NULL";
+        
+        $result = mysqli_query($conn, $sql);
+        $synced = 0;
+        
+        while ($row = mysqli_fetch_assoc($result)) {
+            $defaultPassword = password_hash('parent123', PASSWORD_DEFAULT);
+            
+            $insertSql = "INSERT INTO parent_users (guardian_id, email, password, is_active, created_at) 
+                          VALUES (?, ?, ?, 1, NOW())";
+            
+            $stmt = mysqli_prepare($conn, $insertSql);
+            $email = $row['email'] ?: $row['gname'] . '@parent.com';
+            mysqli_stmt_bind_param($stmt, "sss", $row['id'], $email, $defaultPassword);
+            
+            if (mysqli_stmt_execute($stmt)) {
+                $synced++;
+            }
+        }
+        
+        echo json_encode(['status' => 'success', 'synced' => $synced, 'message' => "$synced parent accounts synced"]);
     }
 }
 

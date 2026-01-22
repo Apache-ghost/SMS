@@ -1,9 +1,54 @@
 <?php
+error_reporting(0);
+ini_set('display_errors', 0);
 
 include("config.php");
 
+// Handle GET request for simple student list (used by messages page)
+if ($_SERVER["REQUEST_METHOD"] == "GET") {
+    $query = "SELECT id, fname, lname, class, section FROM students ORDER BY fname, lname ASC";
+    $result = @mysqli_query($conn, $query);
+    
+    $students = array();
+    if ($result && mysqli_num_rows($result) > 0) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $students[] = $row;
+        }
+    }
+    
+    header('Content-Type: application/json');
+    echo json_encode($students);
+    mysqli_close($conn);
+    exit;
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
+    // Check if it's form data (for grades page) or JSON data (for student management page)
+    if (isset($_POST['class']) && !isset($_POST['name'])) {
+        // Simple class-based query for grades page
+        $class = mysqli_real_escape_string($conn, $_POST['class']);
+        
+        $query = "SELECT id, fname, lname, class, section, roll FROM students WHERE class = ? ORDER BY fname, lname ASC";
+        $stmt = mysqli_prepare($conn, $query);
+        mysqli_stmt_bind_param($stmt, "s", $class);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        $students = array();
+        if ($result && mysqli_num_rows($result) > 0) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $students[] = $row;
+            }
+        }
+        
+        header('Content-Type: application/json');
+        echo json_encode($students);
+        mysqli_close($conn);
+        exit;
+    }
+
+    // Original JSON-based request handling for student management
     $postData = file_get_contents("php://input");
     $data = json_decode($postData, true);
 

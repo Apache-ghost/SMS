@@ -27,8 +27,10 @@
         <li><a href="notes.php"><i class='bx bx-note'></i>Notes</a></li>
         <li><a href="marks.php"><i class='bx bx-paste'></i>Marks</a></li>
         <li><a href="grades.php"><i class='bx bx-trophy'></i>Grades & Reports</a></li>
+        <li><a href="exams.php"><i class='bx bx-file-blank'></i>Exams</a></li>
         <li><a href="assignments.php"><i class='bx bx-file'></i>Assignments</a></li>
         <li><a href="parent_portal.php"><i class='bx bx-group'></i>Parent Portal</a></li>
+        <li><a href="messages.php"><i class='bx bx-message-dots'></i>Messages</a></li>
         <li><a href="calendar.php"><i class='bx bx-calendar'></i>School Calendar</a></li>
         <li><a href="buses.php"><i class='bx bxs-bus'></i>Bus Service</a></li>
         <li><a href="settings.php"><i class='bx bx-cog'></i>Settings</a></li>

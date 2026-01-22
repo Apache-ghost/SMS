@@ -178,7 +178,51 @@ $id = $_SESSION['uid'];
                 <input id="gfg" class="marks-table-search-box" type="text" placeholder="Search for Title ,Date ,Subjects or Grade">
                 <tbody id="geeks">
                     <?php
+                    // Get student's class and section
+                    $student_query = "SELECT class, section FROM students WHERE id = ?";
+                    $student_stmt = $conn->prepare($student_query);
+                    $student_stmt->bind_param("s", $id);
+                    $student_stmt->execute();
+                    $student_result = $student_stmt->get_result();
+                    $student_data = $student_result->fetch_assoc();
+                    $student_stmt->close();
+                    
+                    // First, get results from new exam_results table
+                    $query_new = "SELECT er.*, e.exam_title, e.subject, e.exam_date, e.timestamp, e.total_marks, e.passing_marks 
+                                  FROM exam_results er 
+                                  JOIN exams e ON er.exam_id = e.exam_id 
+                                  WHERE er.student_id = ?
+                                  ORDER BY e.exam_date DESC, e.timestamp DESC";
+                    $stmt_new = $conn->prepare($query_new);
+                    $stmt_new->bind_param("s", $id);
+                    $stmt_new->execute();
+                    $result_new = $stmt_new->get_result();
 
+                    $hasResults = false;
+                    
+                    if ($result_new->num_rows > 0) {
+                        $hasResults = true;
+                        while ($row = $result_new->fetch_assoc()) {
+                            $dateDB = $row['exam_date'] ?? $row['timestamp'];
+                            $formattedDate = date("d-m-Y", strtotime($dateDB));
+                            
+                            $percentage = ($row['marks_obtained'] / $row['total_marks']) * 100;
+                            $statusColor = $row['status'] == 'pass' ? 'green' : 'red';
+                            $statusText = ucfirst($row['status']);
+                            
+                            echo "<tr>
+                                    <td>$formattedDate</td>
+                                    <td>{$row['subject']}</td>
+                                    <td>{$row['exam_title']}</td>
+                                    <td style='text-align:center;'>{$row['marks_obtained']}</td>
+                                    <td style='text-align:center;'>{$row['total_marks']}</td>
+                                    <td style='color:$statusColor;text-align:center;'>{$row['grade']} ($statusText)</td>
+                                  </tr>";
+                        }
+                    }
+                    $stmt_new->close();
+
+                    // Then show old marks table results
                     $query2 = "SELECT DISTINCT(`exam_id`) FROM `marks` WHERE `student_id` = ? ORDER BY `s_no`  DESC LIMIT 50";
                     $stmt2 = $conn->prepare($query2);
                     $stmt2->bind_param("s", $id);
@@ -186,6 +230,7 @@ $id = $_SESSION['uid'];
                     $result2 = $stmt2->get_result();
 
                     if ($result2->num_rows > 0) {
+                        $hasResults = true;
                         while ($row2 = $result2->fetch_assoc()) {
                             $examId = $row2['exam_id'];
 
@@ -222,7 +267,8 @@ $id = $_SESSION['uid'];
 
                                 $status = $isFail ? "<td style='color:red;text-align:center;'>Fail</td>" : "<td style='color:green;text-align:center;'>Pass</td>";
 
-                                echo " <td>$formattedDate</td>
+                                echo "<tr>
+                                        <td>$formattedDate</td>
                                         <td><a class='no-submit subjective-result-btn cursor-pointer' id='hit' onClick='handleShowAllSubjectMarks(`" . $row3['exam_id'] . "`)'>" . $row3['subject'] . "</a></td>
                                         <td>" . $row3['exam_title'] . "</td>
                                         <td style='text-align:center;'>$totalGainMarks</td>
@@ -240,7 +286,7 @@ $id = $_SESSION['uid'];
 
                                 $status = ((int)$mark >= (int)$row3['passing_marks']) ? "<td style='color:green;text-align:center;'>Pass</td>" : "<td style='color:red;text-align:center;'>Fail</td>";
 
-                                echo "
+                                echo "<tr>
                                     <td>$formattedDate</td> 
                                     <td>" . $row3['subject'] . "</td>
                                     <td>" . $row3['exam_title'] . "</td>
@@ -255,8 +301,10 @@ $id = $_SESSION['uid'];
                                 $stmt4->close();
                             }
                         }
-                    }else{
-                        echo '<td colspan="6" style="text-align:center;padding-top: 3rem;">No Data</td>';
+                    }
+                    
+                    if (!$hasResults) {
+                        echo '<tr><td colspan="6" style="text-align:center;padding-top: 3rem;">No exam results available</td></tr>';
                     }
 
                     $stmt2->close();

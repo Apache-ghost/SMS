@@ -11,6 +11,3 @@
         header('Location: ../errors/error.html');
         exit();
     }
-
-
-?>

@@ -49,6 +49,8 @@
 </div>
 
 <script>
+let myChildren = [];
+
 document.addEventListener('DOMContentLoaded', function() {
     loadChildren();
 });
@@ -63,11 +65,30 @@ function loadChildren() {
     .then(data => {
         const select = document.getElementById('childSelect');
         if (data.status === 'success' && data.children.length > 0) {
+            myChildren = data.children; // Store children list
             let html = '<option value="" data-class="" data-section="">-- Select Child --</option>';
             data.children.forEach(child => {
                 html += `<option value="${child.id}" data-class="${child.class}" data-section="${child.section}">${child.name} (Class ${child.class})</option>`;
             });
             select.innerHTML = html;
+            
+            // Check URL parameters AFTER loading children
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlClass = urlParams.get('class');
+            const urlSection = urlParams.get('section');
+            if (urlClass) {
+                // Find student by class and section from MY children
+                const myStudent = myChildren.find(child => 
+                    child.class === urlClass && child.section === urlSection
+                );
+                if (myStudent) {
+                    select.value = myStudent.id;
+                    loadTimetable();
+                } else {
+                    alert('⚠️ You do not have access to this class timetable');
+                    window.location.href = 'timetable.php';
+                }
+            }
         } else {
             select.innerHTML = '<option value="">No children found</option>';
         }

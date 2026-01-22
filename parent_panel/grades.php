@@ -58,26 +58,45 @@
 </div>
 
 <script>
-let children = [];
+let myChildren = [];
 
 document.addEventListener('DOMContentLoaded', function() {
     loadChildren();
-    
-    // Check if student_id in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const studentId = urlParams.get('student_id');
-    if (studentId) {
-        setTimeout(() => {
-            document.getElementById('childSelect').value = studentId;
-            loadGrades();
-        }, 500);
-    }
 });
 
 function loadChildren() {
     fetch('../assets/parentPortalHandler.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=get_children'
+    })
+    .then(response => response.json())
+    .then(data => {
+        const select = document.getElementById('childSelect');
+        if (data.status === 'success' && data.children.length > 0) {
+            myChildren = data.children; // Store children list
+            let html = '<option value="">-- Select Child --</option>';
+            data.children.forEach(child => {
+                html += `<option value="${child.id}">${child.name} (Class ${child.class})</option>`;
+            });
+            select.innerHTML = html;
+            
+            // Check URL parameter AFTER loading children
+            const urlParams = new URLSearchParams(window.location.search);
+            const studentId = urlParams.get('student_id');
+            if (studentId) {
+                // Verify this student belongs to parent
+                const isMyChild = myChildren.some(child => child.id === studentId);
+                if (isMyChild) {
+                    select.value = studentId;
+                    loadGrades();
+                } else {
+                    alert('⚠️ You do not have access to this student\'s grades');
+                    window.location.href = 'grades.php';
+                }
+            }
+        } else {
+            select.innerHTML = '<option value="">No children found</option>';
         body: 'action=get_children'
     })
     .then(response => response.json())
