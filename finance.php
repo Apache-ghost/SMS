@@ -267,11 +267,11 @@
                         <div class="metric-box">
                             <div class="metric">
                                 <div class="metric-label">Total Revenue</div>
-                                <div class="metric-value" id="totalRevenue">₦0</div>
+                                <div class="metric-value" id="totalRevenue">FCFA 0</div>
                             </div>
                             <div class="metric">
                                 <div class="metric-label">Total Expenses</div>
-                                <div class="metric-value" id="totalExpenses">₦0</div>
+                                <div class="metric-value" id="totalExpenses">FCFA 0</div>
                             </div>
                             <div class="metric">
                                 <div class="metric-label">Pending Invoices</div>
@@ -627,7 +627,7 @@
                         <div id="analytics--content" class="metric-box">
 <div class="metric">
 <div class="metric-label">Budget</div>
-<div class="metric-value" id="analyticsBudget">₦0</div>
+<div class="metric-value" id="analyticsBudget">FCFA 0</div>
 </div>
 <div class="metric">
 <div class="metric-label">Total Leads</div>
@@ -643,7 +643,7 @@
 </div>
 <div class="metric">
 <div class="metric-label">Total Revenue</div>
-<div class="metric-value" id="analyticsRevenue">₦0</div>
+<div class="metric-value" id="analyticsRevenue">FCFA 0</div>
 </div>
 <div class="metric">
 <div class="metric-label">ROI</div>
@@ -1059,11 +1059,11 @@ async function loadUserData() {
         else if (sectionId === 'analytics') {
             loadCampaignsForAnalytics();
             // Clear previous analytics data
-            document.getElementById('analyticsBudget').textContent = '₦0';
+            document.getElementById('analyticsBudget').textContent = 'FCFA 0';
             document.getElementById('analyticsLeads').textContent = '0';
             document.getElementById('analyticsConversions').textContent = '0';
             document.getElementById('analyticsRate').textContent = '0%';
-            document.getElementById('analyticsRevenue').textContent = '₦0';
+            document.getElementById('analyticsRevenue').textContent = 'FCFA 0';
             document.getElementById('analyticsROI').textContent = '0%';
         }
         
@@ -1181,7 +1181,7 @@ async function loadUserData() {
         if (result.success && result.data) {
             container.innerHTML = result.data.map(inv => 
                 '<tr><td>' + inv.invoice_number + '</td><td>' + inv.full_name + 
-                '</td><td>₦' + inv.amount.toLocaleString() + 
+                '</td><td>FCFA ' + inv.amount.toLocaleString() + 
                 '</td><td>' + new Date(inv.due_date).toLocaleDateString() + 
                 '</td><td><span class="badge badge-status badge-' + inv.status + '">' + inv.status + '</span></td>' +
                 '<td><button class="btn btn-sm btn-info" onclick="updateInvoiceStatus(' + inv.id + ')">Update</button></td></tr>'
@@ -1283,7 +1283,7 @@ async function loadUserData() {
         const container = document.getElementById('myPaymentsTable');
         if (result.success && result.data) {
             container.innerHTML = result.data.map(pay => 
-                '<tr><td>' + pay.reference_number + '</td><td>₦' + pay.amount.toLocaleString() + 
+                '<tr><td>' + pay.reference_number + '</td><td>FCFA ' + pay.amount.toLocaleString() + 
                 '</td><td>' + pay.payment_method + '</td><td>' + new Date(pay.payment_date).toLocaleDateString() + 
                 '</td><td><span class="badge bg-success">' + pay.status + '</span></td>' +
                 '<td><button class="btn btn-sm btn-info" onclick="downloadReceipt(' + pay.id + ')">Receipt</button></td></tr>'
@@ -1303,7 +1303,7 @@ async function loadUserData() {
                 '<tr><td>' + (pay.full_name || 'N/A') + '</td>' +
                 '<td>' + (pay.invoice_number || 'N/A') + '</td>' +
                 '<td>' + (pay.reference_number || 'N/A') + '</td>' +
-                '<td>₦' + (pay.amount ? pay.amount.toLocaleString() : '0') + '</td>' +
+                '<td>FCFA ' + (pay.amount ? pay.amount.toLocaleString() : '0') + '</td>' +
                 '<td>' + (pay.payment_method || 'N/A') + '</td>' +
                 '<td>' + (pay.payment_date ? new Date(pay.payment_date).toLocaleDateString() : 'N/A') + '</td>' +
                 '<td><span class="badge bg-success">' + (pay.status || 'N/A') + '</span></td></tr>'
@@ -1326,7 +1326,7 @@ async function loadUserData() {
             select.innerHTML = '<option value="">Choose an invoice...</option>' + 
                 result.data.map(inv => 
                     '<option value="' + inv.id + '" data-amount="' + inv.amount + '">' + 
-                    inv.invoice_number + ' - ₦' + inv.amount.toLocaleString() + 
+                    inv.invoice_number + ' - FCFA ' + inv.amount.toLocaleString() + 
                     (inv.full_name ? ' (' + inv.full_name + ')' : '') + '</option>'
                 ).join('');
         } else {
@@ -1367,7 +1367,7 @@ async function loadUserData() {
             const receipt = result.data;
             let content = 'PAYMENT RECEIPT\n\n';
             content += 'Reference: ' + receipt.reference_number + '\n';
-            content += 'Amount: ₦' + receipt.amount + '\n';
+            content += 'Amount: FCFA ' + receipt.amount + '\n';
             content += 'Date: ' + new Date(receipt.payment_date).toLocaleDateString() + '\n';
             content += 'Status: ' + receipt.status + '\n';
             
@@ -1378,15 +1378,15 @@ async function loadUserData() {
     async function loadInvoiceAmount() {
         const invoiceId = document.getElementById('invoiceSelect').value;
         if (!invoiceId) {
-            document.getElementById('summaryInvoiceAmount').textContent = '₦0';
-            document.getElementById('summaryBalance').textContent = '₦0';
+            document.getElementById('summaryInvoiceAmount').textContent = 'FCFA 0';
+            document.getElementById('summaryBalance').textContent = 'FCFA 0';
             return;
         }
 
         const selectedOption = document.getElementById('invoiceSelect').selectedOptions[0];
         const invoiceAmount = selectedOption.getAttribute('data-amount') || 0;
         
-        document.getElementById('summaryInvoiceAmount').textContent = '₦' + parseFloat(invoiceAmount).toLocaleString();
+        document.getElementById('summaryInvoiceAmount').textContent = 'FCFA ' + parseFloat(invoiceAmount).toLocaleString();
         document.getElementById('paymentAmount').value = invoiceAmount;
         updatePaymentSummary();
     }
@@ -1399,7 +1399,7 @@ async function loadUserData() {
         const container = document.getElementById('expensesTable');
         if (result.success && result.data) {
             container.innerHTML = result.data.map(exp => 
-                '<tr><td>' + exp.category + '</td><td>₦' + exp.amount.toLocaleString() + 
+                '<tr><td>' + exp.category + '</td><td>FCFA ' + exp.amount.toLocaleString() + 
                 '</td><td>' + exp.description + '</td><td>' + new Date(exp.expense_date).toLocaleDateString() + 
                 '</td><td><button class="btn btn-sm btn-danger" onclick="deleteExpense(' + exp.id + ')">Delete</button></td></tr>'
             ).join('');
@@ -1463,10 +1463,10 @@ async function loadUserData() {
         if (result.success && result.data) {
             const data = result.data;
             const html = '<div class="metric-box">' +
-                '<div class="metric"><div class="metric-label">Revenue</div><div class="metric-value">₦' + data.revenue.toLocaleString() + '</div></div>' +
-                '<div class="metric"><div class="metric-label">Expenses</div><div class="metric-value">₦' + data.expenses.toLocaleString() + '</div></div>' +
-                '<div class="metric"><div class="metric-label">Net Profit</div><div class="metric-value">₦' + data.net_profit.toLocaleString() + '</div></div>' +
-                '<div class="metric"><div class="metric-label">Pending</div><div class="metric-value">₦' + data.pending_invoices.toLocaleString() + '</div></div>' +
+                '<div class="metric"><div class="metric-label">Revenue</div><div class="metric-value">FCFA ' + data.revenue.toLocaleString() + '</div></div>' +
+                '<div class="metric"><div class="metric-label">Expenses</div><div class="metric-value">FCFA ' + data.expenses.toLocaleString() + '</div></div>' +
+                '<div class="metric"><div class="metric-label">Net Profit</div><div class="metric-value">FCFA ' + data.net_profit.toLocaleString() + '</div></div>' +
+                '<div class="metric"><div class="metric-label">Pending</div><div class="metric-value">FCFA ' + data.pending_invoices.toLocaleString() + '</div></div>' +
                 '</div>';
             document.getElementById('financialReportContent').innerHTML = html;
         }
@@ -1475,7 +1475,7 @@ async function loadUserData() {
     function downloadFinancialReport() {
         let content = 'FINANCIAL SUMMARY REPORT\n';
         content += 'Generated: ' + new Date().toLocaleDateString() + '\n\n';
-        content += 'Revenue: ₦' + (document.querySelector('[id="metric-value"]').textContent || '0') + '\n';
+        content += 'Revenue: FCFA ' + (document.querySelector('[id="metric-value"]').textContent || '0') + '\n';
         downloadFile(content, 'financial_report.txt');
     }
     async function viewCampaignDetails(campaignId) {
@@ -1489,7 +1489,7 @@ async function loadUserData() {
             // Populate modal with campaign details
             document.getElementById('detailCampaignName').textContent = campaign.campaign_name || 'N/A';
             document.getElementById('detailCampaignType').textContent = formatCampaignType(campaign.campaign_type);
-            document.getElementById('detailCampaignBudget').textContent = '₦' + (campaign.budget ? campaign.budget.toLocaleString() : '0');
+            document.getElementById('detailCampaignBudget').textContent = 'FCFA ' + (campaign.budget ? campaign.budget.toLocaleString() : '0');
             document.getElementById('detailCampaignStatus').innerHTML = 
                 `<span class="badge ${getCampaignStatusClass(campaign.status)}">${campaign.status || 'active'}</span>`;
             document.getElementById('detailCampaignStart').textContent = campaign.start_date ? 
@@ -1586,7 +1586,7 @@ async function loadUserData() {
         if (result.success && result.data) {
             container.innerHTML = result.data.map(camp => 
                 '<tr><td>' + camp.campaign_name + '</td><td>' + formatCampaignType(camp.campaign_type) + 
-                '</td><td>₦' + (camp.budget ? camp.budget.toLocaleString() : '0') + '</td><td>' + 
+                '<td>FCFA ' + (camp.budget ? camp.budget.toLocaleString() : '0') + '</td><td>' + 
                 (camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A') + ' to ' + 
                 (camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A') + 
                 '</td><td><span class="badge ' + getCampaignStatusClass(camp.status) + '">' + (camp.status || 'active') + '</span></td>' +
@@ -1726,7 +1726,7 @@ async function loadUserData() {
 
     // Fix the convertLead function to match your database structure
     async function convertLead(leadId) {
-        const conversionValue = prompt('Enter conversion value (₦):');
+        const conversionValue = prompt('Enter conversion value (FCFA):');
         if (!conversionValue || isNaN(conversionValue) || parseFloat(conversionValue) <= 0) {
             showAlert('Please enter a valid conversion amount');
             return;

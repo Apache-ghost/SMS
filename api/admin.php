@@ -36,9 +36,10 @@ try {
         die(json_encode(['success' => false, 'message' => 'Not authenticated']));
     }
     
-    if (!User::hasRole('admin')) {
+    // Allow admin, staff, and faculty for user listing (needed for academic enrollments)
+    if (!User::hasRole(['admin', 'staff', 'faculty'])) {
         http_response_code(403);
-        die(json_encode(['success' => false, 'message' => 'Unauthorized - Admin access required']));
+        die(json_encode(['success' => false, 'message' => 'Unauthorized - Admin, Staff, or Faculty access required']));
     }
 } catch (Exception $e) {
     error_log('Init error: ' . $e->getMessage());

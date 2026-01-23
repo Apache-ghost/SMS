@@ -136,7 +136,7 @@ class Admin {
     }
 
     public function getUsersByRole($role) {
-        $valid_roles = ['admin', 'staff', 'student', 'faculty'];
+        $valid_roles = ['admin', 'staff', 'student', 'faculty', 'lecturer'];
         if (!in_array($role, $valid_roles)) {
             return ['success' => false, 'message' => 'Invalid role'];
         }
@@ -203,7 +203,7 @@ class Admin {
         }
 
         if ($role !== null) {
-            $valid_roles = ['admin', 'staff', 'student', 'faculty'];
+            $valid_roles = ['admin', 'staff', 'student', 'faculty', 'lecturer'];
             if (!in_array($role, $valid_roles)) {
                 return ['success' => false, 'message' => 'Invalid role'];
             }

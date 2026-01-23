@@ -222,6 +222,21 @@ public function getActiveStudents() {
         return ['success' => false, 'message' => 'Failed to unenroll student'];
     }
 
+    public function updateEnrollmentStatus($enrollment_id, $status) {
+        $valid_statuses = ['enrolled', 'dropped'];
+        if (!in_array($status, $valid_statuses)) {
+            return ['success' => false, 'message' => 'Invalid status'];
+        }
+        $query = "UPDATE enrollments SET status = ? WHERE id = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param("si", $status, $enrollment_id);
+
+        if ($stmt->execute()) {
+            return ['success' => true, 'message' => 'Enrollment status updated successfully'];
+        }
+        return ['success' => false, 'message' => 'Failed to update enrollment status'];
+    }
+
     // ==================== GRADES ====================
     
     public function addGrade($enrollment_id, $midterm_score, $final_score, $assignment_score) {
@@ -309,8 +324,7 @@ public function getActiveStudents() {
                     COUNT(*) as total_classes,
                     SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present,
                     SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent,
-                    SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late,
-                    ROUND((SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) as percentage
+                    SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late
                   FROM attendance
                   WHERE enrollment_id = ?";
         
@@ -320,7 +334,17 @@ public function getActiveStudents() {
         $result = $stmt->get_result();
 
         if ($row = $result->fetch_assoc()) {
-            return ['success' => true, 'data' => $row];
+            $total_classes = (int)$row['total_classes'];
+            $present = (int)$row['present'];
+            $percentage = $total_classes > 0 ? round(($present / $total_classes) * 100, 2) : 0;
+            
+            return ['success' => true, 'data' => [
+                'total_classes' => $total_classes,
+                'present' => $present,
+                'absent' => (int)$row['absent'],
+                'late' => (int)$row['late'],
+                'percentage' => $percentage
+            ]];
         }
         return ['success' => true, 'data' => ['total_classes' => 0, 'present' => 0, 'absent' => 0, 'late' => 0, 'percentage' => 0]];
     }

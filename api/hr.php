@@ -52,6 +52,7 @@ try {
     if ($method === 'POST') {
         $input = file_get_contents("php://input");
         $data = json_decode($input, true);
+        $action = $data['action'] ?? $action;
         
         // Employee Management
         if ($action === 'add-employee') {
@@ -298,8 +299,9 @@ try {
     elseif ($method === 'PUT') {
         $input = file_get_contents("php://input");
         $data = json_decode($input, true);
+        $action = $data['action'] ?? $_GET['action'] ?? '';
         
-        if ($action === 'update-employee') {
+        if ($action === 'update_employee') {
             if (User::hasRole(['admin', 'staff'])) {
                 $response = $hr->updateEmployee(
                     $data['employee_id'],

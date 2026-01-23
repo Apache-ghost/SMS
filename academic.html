@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -557,6 +557,26 @@
         </div>
       `;
 
+      // Faculty/Lecturer Navigation Template
+      const facultyNav = `
+        <h5 style="margin-bottom: 20px; color: #1f2937">Faculty Panel</h5>
+        <div class="nav-link active" onclick="switchToSection('faculty-dashboard')">
+          <i class="fas fa-tachometer-alt"></i> Dashboard
+        </div>
+        <div class="nav-link" onclick="switchToSection('my-courses')">
+          <i class="fas fa-book"></i> My Courses
+        </div>
+        <div class="nav-link" onclick="switchToSection('mark-attendance')">
+          <i class="fas fa-calendar-check"></i> Mark Attendance
+        </div>
+        <div class="nav-link" onclick="switchToSection('faculty-grades')">
+          <i class="fas fa-edit"></i> Manage Grades
+        </div>
+        <div class="nav-link" onclick="switchToSection('faculty-attendance-view')">
+          <i class="fas fa-check"></i> View Attendance
+        </div>
+      `;
+
       // Student Main Content Template
       const studentContent = `
         <div id="alertContainer"></div>
@@ -813,12 +833,12 @@
                   </select>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Enroll Student</label>
+                  <label class="form-label">Enroll Person</label>
                   <div class="input-group">
-                    <select id="studentSelect" class="form-select">
-                      <option value="">Select student...</option>
+                    <select id="personSelect" class="form-select">
+                      <option value="">Select person...</option>
                     </select>
-                    <button class="btn btn-success" onclick="enrollStudent()">Enroll</button>
+                    <button class="btn btn-success" onclick="enrollPerson()">Enroll</button>
                   </div>
                 </div>
               </div>
@@ -826,7 +846,7 @@
                 <table class="table">
                   <thead>
                     <tr>
-                      <th>Student Name</th>
+                      <th>Name</th>
                       <th>Email</th>
                       <th>Enrollment Date</th>
                       <th>Status</th>
@@ -946,6 +966,95 @@
         </div>
       `;
 
+      // Faculty Main Content Template
+      const facultyContent = `
+        <div id="alertContainer"></div>
+
+        <!-- Faculty Dashboard -->
+        <div id="faculty-dashboard" class="section active">
+          <h2 style="margin-bottom: 30px; color: #1f2937">Faculty Dashboard</h2>
+          <div class="row">
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">My Courses</div>
+                <div class="stat-value" id="facultyCoursesStat">0</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">Total Students</div>
+                <div class="stat-value" id="facultyStudentsStat">0</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">Pending Grades</div>
+                <div class="stat-value" id="facultyGradesStat">0</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card">
+                <div class="stat-label">Today's Classes</div>
+                <div class="stat-value" id="facultyClassesStat">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- My Courses -->
+        <div id="my-courses" class="section">
+          <h2 style="margin-bottom: 30px; color: #1f2937">My Courses</h2>
+          <div id="facultyCoursesList" class="loading">Loading...</div>
+        </div>
+
+        <!-- Mark Attendance -->
+        <div id="mark-attendance" class="section">
+          <h2 style="margin-bottom: 30px; color: #1f2937">Mark Attendance</h2>
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <label class="form-label">Select Course</label>
+              <select id="attendanceCourseSelect" class="form-select" onchange="loadEnrolledStudents()">
+                <option value="">Choose a course...</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Attendance Date</label>
+              <input type="date" id="attendanceDate" class="form-control" onchange="loadEnrolledStudents()">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">&nbsp;</label>
+              <button onclick="markBulkAttendance('present')" class="btn btn-success me-2">Mark All Present</button>
+              <button onclick="markBulkAttendance('absent')" class="btn btn-danger">Mark All Absent</button>
+            </div>
+          </div>
+          <div id="attendanceStudentsList" class="loading">Select a course and date to mark attendance</div>
+        </div>
+
+        <!-- Manage Grades -->
+        <div id="faculty-grades" class="section">
+          <h2 style="margin-bottom: 30px; color: #1f2937">Manage Grades</h2>
+          <div id="facultyGradesList" class="loading">Loading...</div>
+        </div>
+
+        <!-- View Attendance -->
+        <div id="faculty-attendance-view" class="section">
+          <h2 style="margin-bottom: 30px; color: #1f2937">View Attendance</h2>
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <label class="form-label">Select Course</label>
+              <select id="facultyAttendanceCourseSelect" class="form-select" onchange="loadFacultyAttendanceView()">
+                <option value="">Choose a course...</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Select Date</label>
+              <input type="date" id="facultyAttendanceDate" class="form-control" onchange="loadFacultyAttendanceView()">
+            </div>
+          </div>
+          <div id="facultyAttendanceViewList" class="loading">Select a course and date to view attendance</div>
+        </div>
+      `;
+
       // Initialize on load
       window.addEventListener("load", async function () {
         await loadUserData();
@@ -956,7 +1065,7 @@
         try {
           const response = await fetch(
             "/SMS/api/auth.php?action=current-user",
-            { credentials: "include" }
+            { credentials: "include" },
           );
           const data = await response.json();
           if (data.success) {
@@ -983,6 +1092,10 @@
           sidebar.innerHTML = adminNav;
           mainContent.innerHTML = adminContent;
           loadAdminDashboard();
+        } else if (role === "faculty" || role === "lecturer") {
+          sidebar.innerHTML = facultyNav;
+          mainContent.innerHTML = facultyContent;
+          loadFacultyDashboard();
         } else {
           sidebar.innerHTML = studentNav;
           mainContent.innerHTML = studentContent;
@@ -1052,6 +1165,12 @@
         else if (sectionId === "grades") loadGrades();
         else if (sectionId === "attendance") loadAttendance();
         else if (sectionId === "exams") loadExams();
+        // Faculty sections
+        else if (sectionId === "faculty-dashboard") loadFacultyDashboard();
+        else if (sectionId === "my-courses") loadFacultyCourses();
+        else if (sectionId === "mark-attendance") loadFacultyCourses(); // Load courses for dropdown
+        else if (sectionId === "faculty-grades") loadFacultyGrades();
+        else if (sectionId === "faculty-attendance-view") loadFacultyCourses(); // Load courses for dropdown
         // Admin sections
         else if (sectionId === "admin-dashboard") loadAdminDashboard();
         else if (sectionId === "programs") loadPrograms();
@@ -1158,7 +1277,7 @@
             .slice(0, 3)
             .map(
               (c) =>
-                `<div class="course-card"><strong>${c.course_code}</strong> - ${c.course_name}</div>`
+                `<div class="course-card"><strong>${c.course_code}</strong> - ${c.course_name}</div>`,
             )
             .join("");
         } else {
@@ -1177,7 +1296,7 @@
             result.data
               .map(
                 (c) =>
-                  `<div class="col-md-6"><div class="course-card"><h6>${c.course_code}</h6><p>${c.course_name}</p><small>Credits: ${c.credits}</small></div></div>`
+                  `<div class="col-md-6"><div class="course-card"><h6>${c.course_code}</h6><p>${c.course_name}</p><small>Credits: ${c.credits}</small></div></div>`,
               )
               .join("") +
             "</div>";
@@ -1213,7 +1332,7 @@
                 g.grade || "f"
               ).toLowerCase()}">${g.grade || "-"}</span></td>
             </tr>
-          `
+          `,
             )
             .join("");
         } else {
@@ -1272,7 +1391,7 @@
           for (const course of result.data) {
             const res = await fetch(
               API_BASE + "?action=course-exams&course_id=" + course.course_id,
-              { credentials: "include" }
+              { credentials: "include" },
             );
             const data = await res.json();
             if (data.success && data.data && data.data.length > 0) {
@@ -1300,7 +1419,278 @@
         }
       }
 
-      // Load programs for admin
+      // ==================== FACULTY FUNCTIONS ====================
+
+      // Load faculty dashboard
+      async function loadFacultyDashboard() {
+        // Load faculty courses
+        const coursesResult = await apiCall("instructor-courses", "GET");
+        if (coursesResult.success && coursesResult.data) {
+          document.getElementById("facultyCoursesStat").textContent = coursesResult.data.length;
+          
+          // Calculate total students
+          let totalStudents = 0;
+          for (const course of coursesResult.data) {
+            const enrollmentsResult = await apiCall(`course-enrollments&course_id=${course.id}`, "GET");
+            if (enrollmentsResult.success && enrollmentsResult.data) {
+              totalStudents += enrollmentsResult.data.length;
+            }
+          }
+          document.getElementById("facultyStudentsStat").textContent = totalStudents;
+        }
+        
+        // Load courses for dropdowns
+        await loadFacultyCourses();
+      }
+
+      // Load faculty courses
+      async function loadFacultyCourses() {
+        const result = await apiCall("instructor-courses", "GET");
+        const container = document.getElementById("facultyCoursesList");
+        const courseSelect = document.getElementById("attendanceCourseSelect");
+        const attendanceCourseSelect = document.getElementById("facultyAttendanceCourseSelect");
+        
+        if (result.success && result.data && result.data.length > 0) {
+          // Update course dropdowns
+          const courseOptions = result.data.map(c => `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`).join("");
+          courseSelect.innerHTML = '<option value="">Choose a course...</option>' + courseOptions;
+          attendanceCourseSelect.innerHTML = '<option value="">Choose a course...</option>' + courseOptions;
+          
+          // Display courses list
+          container.innerHTML = '<div class="row">' + result.data.map(course => `
+            <div class="col-md-6">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h6>${course.course_code}</h6>
+                  <p>${course.course_name}</p>
+                  <small class="text-muted">Credits: ${course.credits}</small>
+                </div>
+              </div>
+            </div>
+          `).join("") + "</div>";
+        } else {
+          container.innerHTML = '<div class="alert alert-info">No courses assigned</div>';
+          courseSelect.innerHTML = '<option value="">No courses available</option>';
+          attendanceCourseSelect.innerHTML = '<option value="">No courses available</option>';
+        }
+      }
+
+      // Load enrolled students for attendance marking
+      async function loadEnrolledStudents() {
+        const courseId = document.getElementById("attendanceCourseSelect").value;
+        const date = document.getElementById("attendanceDate").value;
+        const container = document.getElementById("attendanceStudentsList");
+        
+        if (!courseId || !date) {
+          container.innerHTML = 'Select a course and date to mark attendance';
+          return;
+        }
+        
+        container.innerHTML = 'Loading students...';
+        
+        const result = await apiCall(`course-enrollments&course_id=${courseId}`, "GET");
+        if (result.success && result.data && result.data.length > 0) {
+          // Check existing attendance for this date
+          const attendancePromises = result.data.map(async (enrollment) => {
+            try {
+              const attendanceResult = await apiCall(`attendance-summary&enrollment_id=${enrollment.id}`, "GET");
+              return {
+                enrollment: enrollment,
+                attendance: attendanceResult.success ? attendanceResult.data : null
+              };
+            } catch (error) {
+              return {
+                enrollment: enrollment,
+                attendance: null
+              };
+            }
+          });
+          
+          const attendanceData = await Promise.all(attendancePromises);
+          
+          container.innerHTML = `
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${attendanceData.map(({enrollment, attendance}) => {
+                    const existingStatus = attendance && attendance.total_classes > 0 ? 
+                      (attendance.present > 0 ? 'present' : attendance.absent > 0 ? 'absent' : attendance.late > 0 ? 'late' : 'not_marked') : 'not_marked';
+                    
+                    return `
+                      <tr>
+                        <td>${enrollment.student_id || enrollment.id}</td>
+                        <td>${enrollment.student_name || enrollment.full_name}</td>
+                        <td>
+                          <select class="form-select form-select-sm attendance-status" data-enrollment-id="${enrollment.id}">
+                            <option value="not_marked" ${existingStatus === 'not_marked' ? 'selected' : ''}>Not Marked</option>
+                            <option value="present" ${existingStatus === 'present' ? 'selected' : ''}>Present</option>
+                            <option value="absent" ${existingStatus === 'absent' ? 'selected' : ''}>Absent</option>
+                            <option value="late" ${existingStatus === 'late' ? 'selected' : ''}>Late</option>
+                          </select>
+                        </td>
+                        <td>
+                          <button class="btn btn-sm btn-primary" onclick="markStudentAttendance(${enrollment.id})">Save</button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        } else {
+          container.innerHTML = '<div class="alert alert-info">No students enrolled in this course</div>';
+        }
+      }
+
+      // Mark attendance for a specific student
+      async function markStudentAttendance(enrollmentId) {
+        const row = document.querySelector(`[data-enrollment-id="${enrollmentId}"]`).closest('tr');
+        const statusSelect = row.querySelector('.attendance-status');
+        const status = statusSelect.value;
+        const date = document.getElementById("attendanceDate").value;
+        
+        if (status === 'not_marked') {
+          showAlert('Please select an attendance status', 'warning');
+          return;
+        }
+        
+        const result = await apiCall("add-attendance", "POST", {
+          enrollment_id: enrollmentId,
+          attendance_date: date,
+          status: status
+        });
+        
+        if (result.success) {
+          showAlert('Attendance marked successfully', 'success');
+        } else {
+          showAlert(result.message || 'Failed to mark attendance', 'danger');
+        }
+      }
+
+      // Mark bulk attendance for all students
+      async function markBulkAttendance(status) {
+        const courseId = document.getElementById("attendanceCourseSelect").value;
+        const date = document.getElementById("attendanceDate").value;
+        
+        if (!courseId || !date) {
+          showAlert('Please select a course and date', 'warning');
+          return;
+        }
+        
+        if (!confirm(`Mark all students as ${status}?`)) {
+          return;
+        }
+        
+        const result = await apiCall(`course-enrollments&course_id=${courseId}`, "GET");
+        if (result.success && result.data && result.data.length > 0) {
+          let successCount = 0;
+          let failCount = 0;
+          
+          for (const enrollment of result.data) {
+            try {
+              const attendanceResult = await apiCall("add-attendance", "POST", {
+                enrollment_id: enrollment.id,
+                attendance_date: date,
+                status: status
+              });
+              if (attendanceResult.success) {
+                successCount++;
+              } else {
+                failCount++;
+              }
+            } catch (error) {
+              failCount++;
+            }
+          }
+          
+          if (failCount === 0) {
+            showAlert(`Attendance marked for all ${successCount} students`, 'success');
+            loadEnrolledStudents(); // Refresh the list
+          } else {
+            showAlert(`Marked ${successCount} students, ${failCount} failed`, 'warning');
+          }
+        }
+      }
+
+      // Load faculty attendance view
+      async function loadFacultyAttendanceView() {
+        const courseId = document.getElementById("facultyAttendanceCourseSelect").value;
+        const date = document.getElementById("facultyAttendanceDate").value;
+        const container = document.getElementById("facultyAttendanceViewList");
+        
+        if (!courseId || !date) {
+          container.innerHTML = 'Select a course and date to view attendance';
+          return;
+        }
+        
+        container.innerHTML = 'Loading attendance...';
+        
+        const result = await apiCall(`course-enrollments&course_id=${courseId}`, "GET");
+        if (result.success && result.data && result.data.length > 0) {
+          const attendancePromises = result.data.map(async (enrollment) => {
+            try {
+              const attendanceResult = await apiCall(`attendance-summary&enrollment_id=${enrollment.id}`, "GET");
+              return {
+                enrollment: enrollment,
+                attendance: attendanceResult.success ? attendanceResult.data : { present: 0, absent: 0, late: 0, percentage: 0 }
+              };
+            } catch (error) {
+              return {
+                enrollment: enrollment,
+                attendance: { present: 0, absent: 0, late: 0, percentage: 0 }
+              };
+            }
+          });
+          
+          const attendanceData = await Promise.all(attendancePromises);
+          
+          container.innerHTML = `
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Late</th>
+                    <th>Percentage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${attendanceData.map(({enrollment, attendance}) => `
+                    <tr>
+                      <td>${enrollment.student_id || enrollment.id}</td>
+                      <td>${enrollment.student_name || enrollment.full_name}</td>
+                      <td><span class="badge bg-success">${attendance.present}</span></td>
+                      <td><span class="badge bg-danger">${attendance.absent}</span></td>
+                      <td><span class="badge bg-warning">${attendance.late}</span></td>
+                      <td><strong>${attendance.percentage}%</strong></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        } else {
+          container.innerHTML = '<div class="alert alert-info">No students enrolled in this course</div>';
+        }
+      }
+
+      // Load faculty grades (placeholder)
+      async function loadFacultyGrades() {
+        const container = document.getElementById("facultyGradesList");
+        container.innerHTML = '<div class="alert alert-info">Grade management functionality coming soon</div>';
+      }
       async function loadPrograms() {
         const result = await apiCall("programs", "GET");
         const container = document.getElementById("programsTable");
@@ -1321,7 +1711,7 @@
               <td>${p.duration_years} years</td>
               <td><button class="btn btn-sm btn-danger" onclick="deleteProgram(${p.id})">Delete</button></td>
             </tr>
-          `
+          `,
             )
             .join("");
         }
@@ -1344,7 +1734,7 @@
         if (result.success) {
           showAlert("Program added successfully", "success");
           bootstrap.Modal.getInstance(
-            document.getElementById("addProgramModal")
+            document.getElementById("addProgramModal"),
           ).hide();
           document.getElementById("programName").value = "";
           document.getElementById("programCode").value = "";
@@ -1388,7 +1778,7 @@
             result.data
               .map(
                 (c) =>
-                  `<option value="${c.id}">${c.program_name || "N/A"}</option>`
+                  `<option value="${c.id}">${c.program_name || "N/A"}</option>`,
               )
               .join("");
           container.innerHTML = result.data
@@ -1403,7 +1793,7 @@
                 c.id
               })">Delete</button></td>
             </tr>
-          `
+          `,
             )
             .join("");
         }
@@ -1428,7 +1818,7 @@
         if (result.success) {
           showAlert("Course added successfully", "success");
           bootstrap.Modal.getInstance(
-            document.getElementById("addCourseModal")
+            document.getElementById("addCourseModal"),
           ).hide();
           document.getElementById("courseCode").value = "";
           document.getElementById("courseName").value = "";
@@ -1472,13 +1862,13 @@
           if (!coursesResult.success) {
             showAlert(
               "Failed to load courses: " +
-                (coursesResult.message || "Unknown error")
+                (coursesResult.message || "Unknown error"),
             );
             return;
           }
 
           const courseSelect = document.getElementById("courseSelect");
-          const studentSelect = document.getElementById("studentSelect");
+          const studentSelect = document.getElementById("personSelect");
 
           // Populate courses dropdown
           if (coursesResult.data && coursesResult.data.length > 0) {
@@ -1487,7 +1877,7 @@
               coursesResult.data
                 .map(
                   (c) =>
-                    `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`
+                    `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`,
                 )
                 .join("");
           } else {
@@ -1510,7 +1900,7 @@
                   "Content-Type": "application/json",
                   Accept: "application/json",
                 },
-              }
+              },
             );
 
             console.log("Admin API response status:", response.status);
@@ -1520,76 +1910,82 @@
               console.log("Admin API response data:", data);
 
               if (data.success && data.data) {
-                // Filter only students
-                const students = data.data.filter(
-                  (user) => user.role === "student"
+                // Debug: Log all users and their roles
+                console.log("All users from API:", data.data);
+                data.data.forEach(user => console.log(`User: ${user.full_name}, Role: ${user.role}`));
+                
+                // Filter students, lecturers, and faculty
+                const persons = data.data.filter(
+                  (user) =>
+                    user.role === "student" ||
+                    user.role === "lecturer" ||
+                    user.role === "faculty",
                 );
-                console.log("Filtered students:", students);
+                console.log("Filtered persons:", persons);
 
-                if (students.length > 0) {
+                if (persons.length > 0) {
                   studentSelect.innerHTML =
-                    '<option value="">Select student...</option>' +
-                    students
+                    '<option value="">Select person...</option>' +
+                    persons
                       .map((s) => {
                         const displayName =
-                          s.full_name || s.username || `Student ${s.id}`;
+                          s.full_name || s.username || `Person ${s.id}`;
                         const email = s.email ? `(${s.email})` : "";
-                        return `<option value="${s.id}">${displayName} ${email}</option>`;
+                        const role = s.role ? ` - ${s.role}` : "";
+                        return `<option value="${s.id}">${displayName} ${email}${role}</option>`;
                       })
                       .join("");
 
-                  console.log(
-                    `Loaded ${students.length} students successfully`
-                  );
+                  console.log(`Loaded ${persons.length} persons successfully`);
                 } else {
                   studentSelect.innerHTML =
-                    '<option value="">No students found</option>';
+                    '<option value="">No persons found</option>';
                   console.warn(
-                    "No students found in user list. All users:",
-                    data.data
+                    "No persons found in user list. All users:",
+                    data.data,
                   );
                   showAlert(
-                    "No students found in the system. Please add students first.",
-                    "warning"
+                    "No students, lecturers, or faculty found in the system. Please add them first.",
+                    "warning",
                   );
                 }
               } else {
                 studentSelect.innerHTML =
-                  '<option value="">Error loading students</option>';
+                  '<option value="">Error loading persons</option>';
                 console.error("Admin API returned error:", data);
                 showAlert(
-                  "Failed to load students: " +
+                  "Failed to load persons: " +
                     (data.message || "Unknown error"),
-                  "danger"
+                  "danger",
                 );
               }
             } else {
               studentSelect.innerHTML = '<option value="">API Error</option>';
               console.error(
                 "Admin API request failed with status:",
-                response.status
+                response.status,
               );
 
               // Check if it's a permission error
               if (response.status === 403) {
                 showAlert(
                   "Permission denied. Only admin can view students list.",
-                  "danger"
+                  "danger",
                 );
               } else if (response.status === 401) {
                 showAlert(
                   "Authentication required. Please login again.",
-                  "danger"
+                  "danger",
                 );
               } else {
                 showAlert(
-                  "Failed to load students. Server error: " + response.status,
-                  "danger"
+                  "Failed to load persons. Server error: " + response.status,
+                  "danger",
                 );
               }
             }
           } catch (error) {
-            console.error("Error fetching students:", error);
+            console.error("Error fetching persons:", error);
             studentSelect.innerHTML =
               '<option value="">Connection error</option>';
             showAlert("Error connecting to server: " + error.message, "danger");
@@ -1598,7 +1994,7 @@
           console.error("Error in loadCoursesForEnroll:", error);
           showAlert(
             "Error loading enrollment data: " + error.message,
-            "danger"
+            "danger",
           );
         }
       }
@@ -1624,12 +2020,12 @@
               <td>${e.full_name}</td>
               <td>${e.email}</td>
               <td>${new Date(e.enrollment_date).toLocaleDateString()}</td>
-              <td><span class="badge bg-success">${e.status}</span></td>
-              <td><button class="btn btn-sm btn-danger" onclick="unenrollStudent(${
+              <td><span class="badge ${e.status === "enrolled" ? "bg-success" : "bg-warning"}">${e.status}</span></td>
+              <td><button class="btn btn-sm ${e.status === "enrolled" ? "btn-danger" : "btn-success"}" onclick="toggleEnrollment(${
                 e.id
-              })">Unenroll</button></td>
+              }, '${e.status}')">${e.status === "enrolled" ? "Unenroll" : "Enroll"}</button></td>
             </tr>
-          `
+          `,
             )
             .join("");
         } else {
@@ -1638,40 +2034,44 @@
         }
       }
 
-      // Enroll student
-      async function enrollStudent() {
+      // Enroll person
+      async function enrollPerson() {
         const courseId = document.getElementById("courseSelect").value;
-        const studentId = document.getElementById("studentSelect").value;
-        if (!courseId || !studentId) {
-          showAlert("Please select both course and student");
+        const personId = document.getElementById("personSelect").value;
+        if (!courseId || !personId) {
+          showAlert("Please select both course and person");
           return;
         }
         const result = await apiCall("enroll-student", "POST", {
-          user_id: parseInt(studentId),
+          user_id: parseInt(personId),
           course_id: parseInt(courseId),
         });
         if (result.success) {
-          showAlert("Student enrolled successfully", "success");
-          document.getElementById("studentSelect").value = "";
+          showAlert("Person enrolled successfully", "success");
+          document.getElementById("personSelect").value = "";
           loadCourseEnrollments();
         } else {
           showAlert(result.message);
         }
       }
 
-      // Unenroll student
-      async function unenrollStudent(enrollmentId) {
-        if (confirm("Unenroll this student?")) {
-          const unenrollUrl =
-            API_BASE + "?action=unenroll-student&enrollment_id=" + enrollmentId;
-          const response = await fetch(unenrollUrl, {
-            method: "DELETE",
-            credentials: "include",
+      // Toggle enrollment status
+      async function toggleEnrollment(enrollmentId, currentStatus) {
+        const newStatus = currentStatus === "enrolled" ? "dropped" : "enrolled";
+        const actionText = newStatus === "enrolled" ? "Enroll" : "Unenroll";
+        if (confirm(`${actionText} this person?`)) {
+          const result = await apiCall("update_enrollment_status", "POST", {
+            enrollment_id: parseInt(enrollmentId),
+            status: newStatus,
           });
-          const data = await response.json();
-          if (data.success) {
-            showAlert("Student unenrolled", "success");
+          if (result.success) {
+            showAlert(
+              `Person ${newStatus === "enrolled" ? "enrolled" : "unenrolled"}`,
+              "success",
+            );
             loadCourseEnrollments();
+          } else {
+            showAlert(result.message || "Failed to update status", "danger");
           }
         }
       }
@@ -1686,7 +2086,7 @@
             result.data
               .map(
                 (c) =>
-                  `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`
+                  `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`,
               )
               .join("");
         }
@@ -1723,7 +2123,7 @@
                 e.grade || "f"
               ).toLowerCase()}">${e.grade || "-"}</span></td>
             </tr>
-          `
+          `,
             )
             .join("");
         } else {
@@ -1742,7 +2142,7 @@
             result.data
               .map(
                 (c) =>
-                  `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`
+                  `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`,
               )
               .join("");
         }
@@ -1751,7 +2151,7 @@
       // Load course for attendance view (admin)
       async function loadCourseForAttendanceView() {
         const courseId = document.getElementById(
-          "attendanceViewCourseSelect"
+          "attendanceViewCourseSelect",
         ).value;
         const date = document.getElementById("attendanceViewDate").value;
         const container = document.getElementById("attendanceViewTable");
@@ -1779,12 +2179,12 @@
                 a.status === "present"
                   ? "bg-success"
                   : a.status === "absent"
-                  ? "bg-danger"
-                  : "bg-warning"
+                    ? "bg-danger"
+                    : "bg-warning"
               }">${a.status}</span></td>
               <td>${new Date(a.attendance_date).toLocaleDateString()}</td>
             </tr>
-          `
+          `,
             )
             .join("");
         } else {
@@ -1803,7 +2203,7 @@
             result.data
               .map(
                 (c) =>
-                  `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`
+                  `<option value="${c.id}">${c.course_code} - ${c.course_name}</option>`,
               )
               .join("");
 
@@ -1812,7 +2212,7 @@
           for (const course of result.data) {
             const res = await fetch(
               API_BASE + "?action=course-exams&course_id=" + course.id,
-              { credentials: "include" }
+              { credentials: "include" },
             );
             const data = await res.json();
             if (data.success && data.data && data.data.length > 0) {
@@ -1867,7 +2267,7 @@
         if (result.success) {
           showAlert("Exam scheduled successfully", "success");
           bootstrap.Modal.getInstance(
-            document.getElementById("addExamModal")
+            document.getElementById("addExamModal"),
           ).hide();
           document.getElementById("examCourseSelect").value = "";
           document.getElementById("examDate").value = "";
@@ -1910,7 +2310,7 @@
           const element = document.createElement("a");
           element.setAttribute(
             "href",
-            "data:text/plain;charset=utf-8," + encodeURIComponent(pdf)
+            "data:text/plain;charset=utf-8," + encodeURIComponent(pdf),
           );
           element.setAttribute("download", "transcript.txt");
           element.style.display = "none";

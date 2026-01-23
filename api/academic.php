@@ -96,7 +96,7 @@ try {
         
         // Add Attendance
         elseif ($action === 'add-attendance') {
-            if (User::hasRole(['admin', 'faculty'])) {
+            if (User::hasRole(['admin', 'faculty', 'lecturer'])) {
                 $response = $academic->addAttendance(
                     $data['enrollment_id'],
                     $data['attendance_date'],
@@ -130,6 +130,15 @@ try {
                 $response = ['success' => false, 'message' => 'Unauthorized'];
             }
         }
+        
+        // Update Enrollment Status
+        elseif ($action === 'update_enrollment_status') {
+            if (User::hasRole(['admin', 'staff'])) {
+                $response = $academic->updateEnrollmentStatus($data['enrollment_id'], $data['status']);
+            } else {
+                $response = ['success' => false, 'message' => 'Unauthorized'];
+            }
+        }
     }
     
     elseif ($method === 'GET') {
@@ -150,7 +159,7 @@ try {
         }
         
         elseif ($action === 'course-enrollments') {
-            if (User::hasRole(['admin', 'staff', 'faculty'])) {
+            if (User::hasRole(['admin', 'staff', 'faculty', 'lecturer'])) {
                 $response = $academic->getCourseEnrollments($_GET['course_id']);
             } else {
                 $response = ['success' => false, 'message' => 'Unauthorized'];

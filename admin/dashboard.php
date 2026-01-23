@@ -346,11 +346,12 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Add New User</h5>
+                    <h5 class="modal-title" id="modalTitle">Add New User</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="addUserForm">
+                        <input type="hidden" id="userId" value="">
                         <div class="mb-3">
                             <label class="form-label">Full Name</label>
                             <input type="text" id="fullName" class="form-control" required>
@@ -378,7 +379,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="submitAddUser()">Add User</button>
+                    <button type="button" class="btn btn-primary" id="submitBtn" onclick="submitUser()">Add User</button>
                 </div>
             </div>
         </div>
@@ -531,22 +532,38 @@
         }
 
         function openAddUserModal() {
+            isEditing = false;
+            document.getElementById('modalTitle').textContent = 'Add New User';
+            document.getElementById('submitBtn').textContent = 'Add User';
+            document.getElementById('userId').value = '';
+            document.getElementById('fullName').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('role').value = '';
             const modal = new bootstrap.Modal(document.getElementById('addUserModal'));
             modal.show();
         }
 
-        function submitAddUser() {
+        function submitUser() {
+            const userId = document.getElementById('userId').value;
             const fullName = document.getElementById('fullName').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const role = document.getElementById('role').value;
 
-            if (!fullName || !email || !password || !role) {
-                showAlert('All fields are required');
-                return;
+            if (isEditing) {
+                if (!fullName || !email || !role) {
+                    showAlert('All fields except password are required');
+                    return;
+                }
+                updateUser(userId, fullName, email, role);
+            } else {
+                if (!fullName || !email || !password || !role) {
+                    showAlert('All fields are required');
+                    return;
+                }
+                createUser(fullName, email, password, role);
             }
-
-            createUser(fullName, email, password, role);
         }
 
         async function createUser(fullName, email, password, role) {
@@ -583,8 +600,66 @@
             }
         }
 
+        async function updateUser(userId, fullName, email, role) {
+            try {
+                const response = await fetch(`${API_BASE}?action=update-user`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        full_name: fullName,
+                        email: email,
+                        role: role
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('User updated successfully', 'success');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                    modal.hide();
+                    loadAllUsers();
+                    loadUserStats();
+                } else {
+                    showAlert(data.message || 'Failed to update user');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Error updating user');
+            }
+        }
+
         function editUser(userId) {
-            showAlert('Edit functionality coming soon');
+            // Fetch user details
+            fetch(`${API_BASE}?action=user-details&user_id=${userId}`, {
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const user = data.data;
+                    isEditing = true;
+                    document.getElementById('modalTitle').textContent = 'Edit User';
+                    document.getElementById('submitBtn').textContent = 'Update User';
+                    document.getElementById('userId').value = user.id;
+                    document.getElementById('fullName').value = user.full_name;
+                    document.getElementById('email').value = user.email;
+                    document.getElementById('password').value = ''; // Don't populate password
+                    document.getElementById('role').value = user.role;
+                    const modal = new bootstrap.Modal(document.getElementById('addUserModal'));
+                    modal.show();
+                } else {
+                    showAlert(data.message || 'Failed to load user details');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error loading user details');
+            });
         }
 
         async function deleteUser(userId) {

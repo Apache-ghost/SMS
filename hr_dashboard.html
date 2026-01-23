@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -808,7 +808,7 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Add Employee</h5>
+            <h5 class="modal-title" id="employeeModalTitle">Add Employee</h5>
             <button
               type="button"
               class="btn-close btn-close-white"
@@ -816,6 +816,7 @@
             ></button>
           </div>
           <div class="modal-body">
+            <input type="hidden" id="editEmployeeId" value="" />
             <div class="mb-3">
               <label class="form-label">Employee ID</label>
               <input type="text" id="employeeId" class="form-control" />
@@ -850,7 +851,8 @@
             <button
               type="button"
               class="btn btn-primary"
-              onclick="addEmployee()"
+              id="employeeSubmitBtn"
+              onclick="submitEmployee()"
             >
               Add Employee
             </button>
@@ -1116,6 +1118,7 @@
       let currentUser = null;
       let allEmployees = [];
       let filteredEmployees = [];
+      let isEditingEmployee = false;
 
       // ==================== INITIALIZATION ====================
       window.addEventListener("load", async function () {
@@ -1130,7 +1133,7 @@
         try {
           const response = await fetch(
             "/SMS/api/auth.php?action=current-user",
-            { credentials: "include" }
+            { credentials: "include" },
           );
           const data = await response.json();
           if (data.success) {
@@ -1235,7 +1238,7 @@
           // Load leave analytics
           const analyticsResponse = await fetch(
             `${API_BASE}?action=leave-analytics`,
-            { credentials: "include" }
+            { credentials: "include" },
           );
           const analyticsData = await analyticsResponse.json();
 
@@ -1302,7 +1305,7 @@
                 <td>${emp.full_name}</td>
                 <td>${emp.designation}</td>
                 <td>${emp.department}</td>
-                <td>$${parseFloat(emp.salary).toFixed(2)}</td>
+                <td>FCFA ${parseFloat(emp.salary).toFixed(2)}</td>
                 <td>${emp.hire_date || "N/A"}</td>
                 <td>
                     <button onclick="editEmployee(${
@@ -1310,7 +1313,7 @@
                     })" class="btn btn-sm btn-primary btn-action">Edit</button>
                 </td>
             </tr>
-        `
+        `,
           )
           .join("");
       }
@@ -1324,19 +1327,30 @@
             emp.full_name.toLowerCase().includes(query) ||
             emp.employee_id.toLowerCase().includes(query) ||
             emp.designation.toLowerCase().includes(query) ||
-            emp.department.toLowerCase().includes(query)
+            emp.department.toLowerCase().includes(query),
         );
         displayEmployees(filteredEmployees);
       }
 
       function openAddEmployeeModal() {
+        isEditingEmployee = false;
+        document.getElementById("employeeModalTitle").textContent =
+          "Add Employee";
+        document.getElementById("employeeSubmitBtn").textContent =
+          "Add Employee";
+        document.getElementById("editEmployeeId").value = "";
+        document.getElementById("employeeId").value = "";
+        document.getElementById("designation").value = "";
+        document.getElementById("department").value = "";
+        document.getElementById("salary").value = "";
         const modal = new bootstrap.Modal(
-          document.getElementById("addEmployeeModal")
+          document.getElementById("addEmployeeModal"),
         );
         modal.show();
       }
 
-      async function addEmployee() {
+      async function submitEmployee() {
+        const editEmployeeId = document.getElementById("editEmployeeId").value;
         const employeeId = document.getElementById("employeeId").value;
         const designation = document.getElementById("designation").value;
         const department = document.getElementById("department").value;
@@ -1347,37 +1361,61 @@
           return;
         }
 
-        try {
-          const response = await fetch(API_BASE + "?action=add-employee", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+        const action = isEditingEmployee ? "update_employee" : "add-employee";
+        const body = isEditingEmployee
+          ? {
+              action: action,
+              employee_id: editEmployeeId,
+              designation: designation,
+              department: department,
+              salary: parseFloat(salary),
+            }
+          : {
+              action: action,
               user_id: currentUser.id,
               employee_id: employeeId,
               designation: designation,
               department: department,
               salary: parseFloat(salary),
-            }),
+            };
+
+        try {
+          const response = await fetch(API_BASE + "?action=" + action, {
+            method: isEditingEmployee ? "PUT" : "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
           });
 
           const data = await response.json();
           if (data.success) {
-            showAlert("Employee added successfully", "success");
+            showAlert(
+              isEditingEmployee
+                ? "Employee updated successfully"
+                : "Employee added successfully",
+              "success",
+            );
             bootstrap.Modal.getInstance(
-              document.getElementById("addEmployeeModal")
+              document.getElementById("addEmployeeModal"),
             ).hide();
             loadAllEmployees();
             document
               .getElementById("addEmployeeModal")
               .querySelector("form")
               ?.reset();
+            document.getElementById("editEmployeeId").value = "";
             document.getElementById("employeeId").value = "";
             document.getElementById("designation").value = "";
             document.getElementById("department").value = "";
             document.getElementById("salary").value = "";
           } else {
-            showAlert(data.message || "Failed to add employee", "danger");
+            showAlert(
+              data.message ||
+                (isEditingEmployee
+                  ? "Failed to update employee"
+                  : "Failed to add employee"),
+              "danger",
+            );
           }
         } catch (error) {
           console.error("Error:", error);
@@ -1418,11 +1456,11 @@
                 <td>${leave.end_date}</td>
                 <td>${leave.leave_type}</td>
                 <td><span class="badge ${getStatusBadgeClass(leave.status)}">${
-              leave.status
-            }</span></td>
+                  leave.status
+                }</span></td>
                 <td>${leave.reason || "N/A"}</td>
             </tr>
-        `
+        `,
           )
           .join("");
       }
@@ -1431,7 +1469,7 @@
         try {
           const response = await fetch(
             `${API_BASE}?action=all-leave-requests`,
-            { credentials: "include" }
+            { credentials: "include" },
           );
           const data = await response.json();
 
@@ -1462,8 +1500,8 @@
                 <td>${leave.leave_type}</td>
                 <td>${leave.reason || "N/A"}</td>
                 <td><span class="badge ${getStatusBadgeClass(leave.status)}">${
-              leave.status
-            }</span></td>
+                  leave.status
+                }</span></td>
                 <td>
                     ${
                       leave.status === "pending"
@@ -1475,14 +1513,14 @@
                     }
                 </td>
             </tr>
-        `
+        `,
           )
           .join("");
       }
 
       function openLeaveRequestModal() {
         const modal = new bootstrap.Modal(
-          document.getElementById("leaveRequestModal")
+          document.getElementById("leaveRequestModal"),
         );
         modal.show();
       }
@@ -1520,7 +1558,7 @@
           if (data.success) {
             showAlert("Leave request submitted successfully", "success");
             bootstrap.Modal.getInstance(
-              document.getElementById("leaveRequestModal")
+              document.getElementById("leaveRequestModal"),
             ).hide();
             loadMyLeaves();
             document.getElementById("leaveStartDate").value = "";
@@ -1531,7 +1569,7 @@
           } else {
             showAlert(
               data.message || "Failed to submit leave request",
-              "danger"
+              "danger",
             );
           }
         } catch (error) {
@@ -1574,7 +1612,7 @@
         try {
           const response = await fetch(
             `${API_BASE}?action=attendance-records&month=${month}`,
-            { credentials: "include" }
+            { credentials: "include" },
           );
           const data = await response.json();
 
@@ -1620,7 +1658,7 @@
                     <button class="btn btn-sm btn-danger btn-action delete-attendance-btn">Delete</button>
                 </td>
             </tr>
-        `
+        `,
           )
           .join("");
 
@@ -1729,7 +1767,7 @@
               data.data
                 .map(
                   (emp) =>
-                    `<option value="${emp.id}">${emp.employee_id} - ${emp.full_name}</option>`
+                    `<option value="${emp.id}">${emp.employee_id} - ${emp.full_name}</option>`,
                 )
                 .join("");
           }
@@ -1746,7 +1784,7 @@
         try {
           const response = await fetch(
             `${API_BASE}?action=payroll-records&month=${month}`,
-            { credentials: "include" }
+            { credentials: "include" },
           );
           const data = await response.json();
 
@@ -1772,15 +1810,15 @@
             (record) => `
             <tr>
                 <td>${record.full_name}</td>
-                <td>$${parseFloat(record.basic_salary).toFixed(2)}</td>
-                <td>$${parseFloat(record.allowances).toFixed(2)}</td>
-                <td>$${parseFloat(record.deductions).toFixed(2)}</td>
-                <td>$${parseFloat(record.net_salary).toFixed(2)}</td>
+                <td>FCFA ${parseFloat(record.basic_salary).toFixed(2)}</td>
+                <td>FCFA ${parseFloat(record.allowances).toFixed(2)}</td>
+                <td>FCFA ${parseFloat(record.deductions).toFixed(2)}</td>
+                <td>FCFA ${parseFloat(record.net_salary).toFixed(2)}</td>
                 <td><span class="badge ${getStatusBadgeClass(record.status)}">${
-              record.status
-            }</span></td>
+                  record.status
+                }</span></td>
             </tr>
-        `
+        `,
           )
           .join("");
       }
@@ -1814,15 +1852,15 @@
             (record) => `
             <tr>
                 <td>${record.month}</td>
-                <td>$${parseFloat(record.basic_salary).toFixed(2)}</td>
-                <td>$${parseFloat(record.allowances).toFixed(2)}</td>
-                <td>$${parseFloat(record.deductions).toFixed(2)}</td>
-                <td>$${parseFloat(record.net_salary).toFixed(2)}</td>
+                <td>FCFA ${parseFloat(record.basic_salary).toFixed(2)}</td>
+                <td>FCFA ${parseFloat(record.allowances).toFixed(2)}</td>
+                <td>FCFA ${parseFloat(record.deductions).toFixed(2)}</td>
+                <td>FCFA ${parseFloat(record.net_salary).toFixed(2)}</td>
                 <td><span class="badge ${getStatusBadgeClass(record.status)}">${
-              record.status
-            }</span></td>
+                  record.status
+                }</span></td>
             </tr>
-        `
+        `,
           )
           .join("");
       }
@@ -1830,7 +1868,7 @@
       function openPayrollModal() {
         loadAllEmployeesForDropdown("payrollEmployeeId");
         const modal = new bootstrap.Modal(
-          document.getElementById("payrollModal")
+          document.getElementById("payrollModal"),
         );
         modal.show();
       }
@@ -1839,7 +1877,7 @@
         const employeeId = document.getElementById("payrollEmployeeId").value;
         const month = document.getElementById("payrollInputMonth").value;
         const basicSalary = parseFloat(
-          document.getElementById("basicSalary").value
+          document.getElementById("basicSalary").value,
         );
         const allowances =
           parseFloat(document.getElementById("allowances").value) || 0;
@@ -1871,7 +1909,7 @@
           if (data.success) {
             showAlert("Payroll record added successfully", "success");
             bootstrap.Modal.getInstance(
-              document.getElementById("payrollModal")
+              document.getElementById("payrollModal"),
             ).hide();
             loadPayrollRecords();
             document.getElementById("payrollEmployeeId").value = "";
@@ -1931,14 +1969,14 @@
                     })" class="btn btn-sm btn-danger btn-action">Delete</button>
                 </td>
             </tr>
-        `
+        `,
           )
           .join("");
       }
 
       function openAddAssetModal() {
         const modal = new bootstrap.Modal(
-          document.getElementById("addAssetModal")
+          document.getElementById("addAssetModal"),
         );
         modal.show();
       }
@@ -1947,7 +1985,7 @@
         const assetName = document.getElementById("assetName").value;
         const category = document.getElementById("assetCategory").value;
         const quantity = parseInt(
-          document.getElementById("assetQuantity").value
+          document.getElementById("assetQuantity").value,
         );
         const location = document.getElementById("assetLocation").value;
 
@@ -1973,7 +2011,7 @@
           if (data.success) {
             showAlert("Asset added successfully", "success");
             bootstrap.Modal.getInstance(
-              document.getElementById("addAssetModal")
+              document.getElementById("addAssetModal"),
             ).hide();
             loadAssets();
             document.getElementById("assetName").value = "";
@@ -1995,7 +2033,7 @@
           const empResponse = await fetch(
             `{API_BASE}?action=employee-assets&employee_id=
 {currentUser.id}`,
-            { credentials: "include" }
+            { credentials: "include" },
           );
           const empData = await empResponse.json();
           if (empData.success) {
@@ -2024,7 +2062,7 @@
                 <td>${asset.assignment_date}</td>
                 <td><span class="badge bg-success">${asset.status}</span></td>
             </tr>
-        `
+        `,
           )
           .join("");
       }
@@ -2065,7 +2103,7 @@
                     <button onclick="viewAssetDetails(${assign.id})" class="btn btn-sm btn-info btn-action">View</button>
                 </td>
             </tr>
-        `
+        `,
           )
           .join("");
       }
@@ -2074,7 +2112,7 @@
         loadAllEmployeesForDropdown("assignmentEmployeeId");
         loadAllAssetsForDropdown();
         const modal = new bootstrap.Modal(
-          document.getElementById("assetAssignmentModal")
+          document.getElementById("assetAssignmentModal"),
         );
         modal.show();
       }
@@ -2082,7 +2120,7 @@
       async function submitAssetAssignment() {
         const assetId = document.getElementById("assetIdSelect").value;
         const employeeId = document.getElementById(
-          "assignmentEmployeeId"
+          "assignmentEmployeeId",
         ).value;
         const assignmentDate = document.getElementById("assignmentDate").value;
 
@@ -2107,7 +2145,7 @@
           if (data.success) {
             showAlert("Asset assigned successfully", "success");
             bootstrap.Modal.getInstance(
-              document.getElementById("assetAssignmentModal")
+              document.getElementById("assetAssignmentModal"),
             ).hide();
             loadAssetAssignments();
             document.getElementById("assetIdSelect").value = "";
@@ -2136,7 +2174,7 @@
               data.data
                 .map(
                   (asset) =>
-                    `<option value="${asset.id}">${asset.asset_name} (${asset.quantity} available)</option>`
+                    `<option value="${asset.id}">${asset.asset_name} (${asset.quantity} available)</option>`,
                 )
                 .join("");
           }
@@ -2150,7 +2188,7 @@
         try {
           const response = await fetch(
             `${API_BASE}?action=performance-records`,
-            { credentials: "include" }
+            { credentials: "include" },
           );
           const data = await response.json();
 
@@ -2185,7 +2223,7 @@
                 </td>
                 <td>${(record.comments || "N/A").substring(0, 50)}...</td>
             </tr>
-        `
+        `,
           )
           .join("");
       }
@@ -2193,14 +2231,14 @@
       function openPerformanceModal() {
         loadAllEmployeesForDropdown("performanceEmployeeId");
         const modal = new bootstrap.Modal(
-          document.getElementById("performanceModal")
+          document.getElementById("performanceModal"),
         );
         modal.show();
       }
 
       async function submitPerformance() {
         const employeeId = document.getElementById(
-          "performanceEmployeeId"
+          "performanceEmployeeId",
         ).value;
         const reviewDate = document.getElementById("reviewDate").value;
         const rating = document.getElementById("rating").value;
@@ -2228,7 +2266,7 @@
           if (data.success) {
             showAlert("Performance review added successfully", "success");
             bootstrap.Modal.getInstance(
-              document.getElementById("performanceModal")
+              document.getElementById("performanceModal"),
             ).hide();
             loadPerformanceRecords();
             document.getElementById("performanceEmployeeId").value = "";
@@ -2238,7 +2276,7 @@
           } else {
             showAlert(
               data.message || "Failed to add performance review",
-              "danger"
+              "danger",
             );
           }
         } catch (error) {
@@ -2252,7 +2290,7 @@
         try {
           const response = await fetch(
             `${API_BASE}?action=notifications&limit=10`,
-            { credentials: "include" }
+            { credentials: "include" },
           );
           const data = await response.json();
 
@@ -2285,10 +2323,10 @@
                   notif.message
                 }</div>
                 <div style="font-size: 12px; color: #9ca3af; margin-top: 5px;">${new Date(
-                  notif.created_at
+                  notif.created_at,
                 ).toLocaleDateString()}</div>
             </div>
-        `
+        `,
           )
           .join("");
       }
@@ -2313,7 +2351,7 @@
               data.data
                 .map(
                   (emp) =>
-                    `<option value="${emp.id}">${emp.full_name} (${emp.employee_id})</option>`
+                    `<option value="${emp.id}">${emp.full_name} (${emp.employee_id})</option>`,
                 )
                 .join("");
           }
@@ -2341,8 +2379,39 @@
       }
 
       function editEmployee(employeeId) {
-        console.log("Edit employee:", employeeId);
-        showAlert("Edit functionality coming soon", "info");
+        // Fetch employee details
+        fetch(`${API_BASE}?action=employee-details&employee_id=${employeeId}`, {
+          credentials: "include",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              const emp = data.data;
+              isEditingEmployee = true;
+              document.getElementById("employeeModalTitle").textContent =
+                "Edit Employee";
+              document.getElementById("employeeSubmitBtn").textContent =
+                "Update Employee";
+              document.getElementById("editEmployeeId").value = emp.id;
+              document.getElementById("employeeId").value = emp.employee_id;
+              document.getElementById("designation").value = emp.designation;
+              document.getElementById("department").value = emp.department;
+              document.getElementById("salary").value = emp.salary;
+              const modal = new bootstrap.Modal(
+                document.getElementById("addEmployeeModal"),
+              );
+              modal.show();
+            } else {
+              showAlert(
+                data.message || "Failed to load employee details",
+                "danger",
+              );
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            showAlert("Error loading employee details", "danger");
+          });
       }
 
       async function deleteAsset(assetId) {
@@ -2353,7 +2422,7 @@
               {
                 method: "DELETE",
                 credentials: "include",
-              }
+              },
             );
 
             const data = await response.json();
@@ -2381,7 +2450,7 @@
               {
                 method: "DELETE",
                 credentials: "include",
-              }
+              },
             );
 
             const data = await response.json();
@@ -2391,7 +2460,7 @@
             } else {
               showAlert(
                 data.message || "Failed to delete attendance",
-                "danger"
+                "danger",
               );
             }
           } catch (error) {
